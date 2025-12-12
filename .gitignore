@@ -1,0 +1,40 @@
+# ======================
+# OS
+# ======================
+.DS_Store
+Thumbs.db
+
+# ======================
+# Node / Frontend
+# ======================
+node_modules/
+dist/
+.env
+.env.local
+
+# ======================
+# .NET / Visual Studio
+# ======================
+bin/
+obj/
+.vs/
+*.user
+*.suo
+*.cache
+*.log
+*.vsidx
+*.db
+*.db-shm
+*.db-wal
+
+# ======================
+# IDEs
+# ======================
+.vscode/
+.idea/
+
+# ======================
+# Secrets
+# ======================
+appsettings.Development.json
+appsettings.Local.json
