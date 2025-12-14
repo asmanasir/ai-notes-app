@@ -7,7 +7,7 @@ on:
 
 env:
   AZURE_WEBAPP_NAME: noteAi
-  PROJECT_PATH: Backend/NotesApp/NotesApp.API/NotesApp.API.csproj
+  PROJECT_PATH: Backend/NotesApp/NotesApp.API
   DOTNET_VERSION: '8.0.x'
 
 jobs:
@@ -30,10 +30,9 @@ jobs:
       run: dotnet build ${{ env.PROJECT_PATH }} --configuration Release --no-restore
 
     - name: Publish
-      run: dotnet publish ${{ env.PROJECT_PATH }} --configuration Release --no-build --output publish
+      run: dotnet publish ${{ env.PROJECT_PATH }} -c Release -o publish
 
-    # ✅ SIMPLE & STABLE AZURE LOGIN
-    - name: Login to Azure
+    - name: Azure Login
       uses: azure/login@v1
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
