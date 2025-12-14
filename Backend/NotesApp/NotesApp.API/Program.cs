@@ -17,7 +17,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(
         builder.Configuration.GetConnectionString("DefaultConnection")
-        ?? "Data Source=notes.db" // fallback for safety
+        ?? "Data Source=notes.db"
     )
 );
 
@@ -38,7 +38,7 @@ var app = builder.Build();
 
 app.UseCors("AllowAll");
 
-// 🔥 Swagger ENABLED for Azure (important)
+// Swagger ENABLED FOR AZURE
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
@@ -47,6 +47,7 @@ app.UseSwaggerUI(c =>
 });
 
 app.UseHttpsRedirection();
+
 app.UseAuthorization();
 
 app.MapControllers();
