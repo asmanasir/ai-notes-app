@@ -5,8 +5,13 @@ on:
     branches:
       - main
 
+# 🔐 REQUIRED for Azure login (THIS FIXES YOUR ERROR)
+permissions:
+  id-token: write
+  contents: read
+
 env:
-  AZURE_WEBAPP_NAME: noteAi                # ✅ Your Azure Web App name
+  AZURE_WEBAPP_NAME: noteAi
   PROJECT_PATH: Backend/NotesApp/NotesApp.API/NotesApp.API.csproj
   DOTNET_VERSION: '8.0.x'
 
@@ -32,7 +37,7 @@ jobs:
     - name: Publish
       run: dotnet publish ${{ env.PROJECT_PATH }} --configuration Release --no-build --output publish
 
-    # 🔑 THIS IS THE CRITICAL STEP (fixes your error)
+    # 🔑 Azure login (OIDC)
     - name: Login to Azure
       uses: azure/login@v1
       with:
