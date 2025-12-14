@@ -1,16 +1,17 @@
 using Microsoft.EntityFrameworkCore;
-using NotesApp.Infrastructure.Data;
 using NotesApp.Application.Interfaces;
-using NotesApp.Infrastructure.Repositories;
 using NotesApp.Application.Services;
+using NotesApp.Infrastructure.Data;
+using NotesApp.Infrastructure.Repositories;
 using NotesApp.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// -------------------- SERVICES --------------------
+// 🔥 REQUIRED FOR AZURE
+var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+builder.WebHost.UseUrls($"http://*:{port}");
 
 builder.Services.AddControllers();
-
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -32,13 +33,11 @@ builder.Services.AddCors(options =>
               .AllowAnyHeader());
 });
 
-// -------------------- APP --------------------
-
 var app = builder.Build();
 
 app.UseCors("AllowAll");
 
-// Swagger ENABLED FOR AZURE
+// 🔥 Swagger ALWAYS ENABLED (Azure is Production)
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
@@ -47,9 +46,6 @@ app.UseSwaggerUI(c =>
 });
 
 app.UseHttpsRedirection();
-
 app.UseAuthorization();
-
 app.MapControllers();
-
 app.Run();
