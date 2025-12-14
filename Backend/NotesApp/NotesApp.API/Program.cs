@@ -7,10 +7,6 @@ using NotesApp.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 🔥 REQUIRED FOR AZURE
-var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
-builder.WebHost.UseUrls($"http://*:{port}");
-
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -37,7 +33,6 @@ var app = builder.Build();
 
 app.UseCors("AllowAll");
 
-// 🔥 Swagger ALWAYS ENABLED (Azure is Production)
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
