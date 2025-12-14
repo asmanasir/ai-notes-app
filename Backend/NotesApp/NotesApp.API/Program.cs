@@ -7,12 +7,19 @@ using NotesApp.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// -------------------- SERVICES --------------------
+
 builder.Services.AddControllers();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlite(
+        builder.Configuration.GetConnectionString("DefaultConnection")
+        ?? "Data Source=notes.db" // fallback for safety
+    )
+);
 
 builder.Services.AddScoped<INoteRepository, NoteRepository>();
 builder.Services.AddScoped<IAiService, AiService>();
@@ -25,10 +32,13 @@ builder.Services.AddCors(options =>
               .AllowAnyHeader());
 });
 
+// -------------------- APP --------------------
+
 var app = builder.Build();
 
 app.UseCors("AllowAll");
 
+// 🔥 Swagger ENABLED for Azure (important)
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
@@ -38,7 +48,7 @@ app.UseSwaggerUI(c =>
 
 app.UseHttpsRedirection();
 app.UseAuthorization();
+
 app.MapControllers();
 
 app.Run();
-
