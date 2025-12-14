@@ -7,15 +7,16 @@ on:
 
 env:
   AZURE_WEBAPP_NAME: noteAi
-  DOTNET_VERSION: '8.0.x'
   PROJECT_PATH: Backend/NotesApp/NotesApp.API/NotesApp.API.csproj
+  DOTNET_VERSION: '8.0.x'
 
 jobs:
   build-and-deploy:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
@@ -25,19 +26,15 @@ jobs:
     - name: Restore
       run: dotnet restore ${{ env.PROJECT_PATH }}
 
-    - name: Publish
-      run: |
-        dotnet publish ${{ env.PROJECT_PATH }} \
-        -c Release \
-        -o ${{ github.workspace }}/publish
+    - name: Build
+      run: dotnet build ${{ env.PROJECT_PATH }} --configuration Release --no-restore
 
-    - name: Login to Azure
-      uses: azure/login@v1
-      with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
+    - name: Publish
+      run: dotnet publish ${{ env.PROJECT_PATH }} --configuration Release --output ./publish
 
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
       with:
         app-name: ${{ env.AZURE_WEBAPP_NAME }}
-        package: ${{ github.workspace }}/publish
+        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+        package: ./publish
