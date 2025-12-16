@@ -6,7 +6,7 @@ on:
       - main
 
 env:
-  AZURE_WEBAPP_NAME: noteAi
+  AZURE_WEBAPP_NAME: noteai-api
   PROJECT_PATH: Backend/NotesApp/NotesApp.API/NotesApp.API.csproj
   DOTNET_VERSION: '8.0.x'
 
@@ -32,13 +32,9 @@ jobs:
     - name: Publish
       run: dotnet publish ${{ env.PROJECT_PATH }} -c Release -o publish
 
-    - name: Login to Azure
-      uses: azure/login@v1
-      with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
-
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
       with:
         app-name: ${{ env.AZURE_WEBAPP_NAME }}
+        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
         package: publish
