@@ -1,17 +1,23 @@
-AI Notes App
+🧠 AI Notes App
 Azure-Ready Full-Stack Application (React + ASP.NET Core + Azure OpenAI)
 
-An AI-powered notes application built to demonstrate real-world Azure development practices, modern frontend architecture, and secure AI integration using Azure OpenAI.
+An AI-powered notes application built to demonstrate real-world Azure development practices, modern frontend architecture, and secure AI integration using Azure OpenAI (Microsoft Azure AI / Foundry).
 
-This project is intentionally designed as a portfolio showcase for Azure Developer roles.
+This project is intentionally designed as a portfolio showcase for Azure Developer & Full-Stack Engineer roles.
 
 🌟 Highlights
 
-✅ Azure OpenAI integration
+✅ Azure OpenAI (GPT-4o-mini) integration
+
+✅ CI/CD implemented using GitHub → Azure
+
 ✅ Secure secrets management (no keys in Git)
-✅ Cloud-ready architecture
-✅ Production-quality UI/UX
-✅ Clean, maintainable codebase
+
+✅ Cloud-ready, production-grade architecture
+
+✅ Modern, accessible UI with Dark / Light mode
+
+✅ Clean, maintainable, TypeScript-safe codebase
 
 🚀 Features
 📝 Notes Management
@@ -20,6 +26,10 @@ Create, edit, delete notes
 
 Pin / unpin important notes
 
+Search notes instantly (/ shortcut)
+
+Keyboard shortcuts for productivity
+
 Input validation (title & content required)
 
 Character limits with live counter
@@ -27,6 +37,8 @@ Character limits with live counter
 Responsive, card-based layout
 
 🤖 AI Assistance (Azure OpenAI)
+
+Powered by Azure OpenAI (GPT-4o-mini deployment)
 
 Summarize notes
 
@@ -40,13 +52,19 @@ Generate full notes from a title
 
 AI-generated content badge
 
-Informational disclaimer for AI output
+Clear AI disclaimer for responsible usage
+
+Azure OpenAI is accessed securely via backend APIs — no AI keys are exposed in the frontend
 
 📄 Export
 
 Export individual notes to PDF
 
-PDF export available both in editor & note cards
+PDF export available:
+
+Inside the editor
+
+Directly from note cards
 
 🎨 UI / UX
 
@@ -56,19 +74,33 @@ Modal-based editor
 
 Accessible contrast in dark mode
 
-Modern Tailwind design
+Modern Tailwind UI
+
+Lucide icons for clean, professional visuals
+
+Keyboard shortcuts tooltip modal (?)
 
 Mobile-friendly grid layout
 
+⌨️ Keyboard Shortcuts
+Shortcut	Action
+/	Focus search
+?	Open shortcuts help
+Ctrl / Cmd + Enter	Save note
+Esc	Close modal
 🔐 Security & Best Practices
 
-No secrets committed to Git
+❌ No secrets committed to Git
 
-Environment-based configuration
+✅ Environment-based configuration
 
-GitHub secret scanning compatible
+✅ GitHub secret scanning compatible
 
-Azure-ready configuration structure
+✅ Azure App Settings compatible
+
+✅ Backend-only AI key usage
+
+✅ Production-safe architecture
 
 🏗️ Tech Stack
 Frontend
@@ -81,23 +113,27 @@ Tailwind CSS
 
 Axios
 
+Lucide Icons
+
 Backend
 
 ASP.NET Core Web API
 
-Azure OpenAI
+Azure OpenAI (GPT-4o-mini)
 
 RESTful API design
 
 Cloud & DevOps
 
-Azure App Service (planned)
+Azure App Service
 
-Azure Static Web Apps (planned)
+Azure OpenAI (Microsoft Azure AI / Foundry)
+
+CI/CD via GitHub Actions
+
+Environment variables & App Settings
 
 GitHub
-
-Environment variables & appsettings
 
 📁 Project Structure
 NoteApp/
@@ -130,14 +166,13 @@ NoteApp/
 
 Important: Secrets are never committed to source control.
 
-Required Azure OpenAI Settings
-Backend Environment Variables
+Required Azure OpenAI Environment Variables (Backend)
 AzureOpenAI__ApiKey
 AzureOpenAI__Endpoint
 
 Local Development Configuration
 
-Create the following file locally only:
+Create this file locally only:
 
 Backend/NotesApp.Api/appsettings.Development.json
 
@@ -162,7 +197,7 @@ dotnet restore
 dotnet run
 
 
-Backend runs at: -
+Runs at:
 
 https://localhost:7110
 
@@ -177,32 +212,31 @@ npm install
 npm run dev
 
 
-Frontend runs at:
+Runs at:
 
 http://localhost:5173
 
-☁️ Azure Deployment (Planned)
+☁️ Azure Deployment
 
 Frontend: Azure Static Web Apps
 
 Backend: Azure App Service
 
-Secrets: Azure App Configuration / App Settings
+AI: Azure OpenAI (GPT-4o-mini)
 
-Monitoring: Application Insights
+Secrets: Azure App Settings
 
-CI/CD: GitHub Actions
+CI/CD: GitHub → Azure (already implemented)
 
 ⚠️ Disclaimer
 
-AI-generated content is provided for informational purposes only
-and is not a substitute for professional medical advice, diagnosis, or treatment.
+AI-generated content is provided for informational purposes only and is not a substitute for professional medical advice, diagnosis, or treatment.
 
 🎯 Why This Project?
 
 This project demonstrates:
 
-Azure OpenAI integration in a real app
+Real Azure OpenAI integration
 
 Secure secret management
 
@@ -212,27 +246,25 @@ Modern React architecture
 
 UX decisions for AI-powered features
 
-Cloud-ready structure for Azure deployment
+CI/CD pipelines with GitHub & Azure
 
-Designed specifically to reflect real Azure developer responsibilities, not just UI demos.
+Cloud-ready, production-oriented thinking
+
+Designed to reflect real Azure developer responsibilities, not just a UI demo.
 
 🛣️ Future Enhancements
 
 Authentication (Azure Entra ID)
 
-Note search & filtering
+Role-based access
 
-Pagination
+Tags & advanced filtering
 
-Tag management
-
-CI/CD pipeline
+Audit logs
 
 Azure SQL / Cosmos DB
 
-Role-based access
-
-Audit logs
+Application Insights dashboards
 
 👩‍💻 Author
 
