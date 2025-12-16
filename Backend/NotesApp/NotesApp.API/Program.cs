@@ -6,25 +6,20 @@ using NotesApp.Infrastructure.Data;
 using NotesApp.Infrastructure.Repositories;
 using NotesApp.Infrastructure.Services;
 
-var builder = WebApplication.CreateBuilder(args);
-
-// --------------------
-// Services
-// --------------------
-
-builder.Services.AddControllers();
-
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(options =>
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 {
-    options.SwaggerDoc("v1", new()
-    {
-        Title = "Notes API",
-        Version = "v1"
-    });
+    Args = args,
+    ContentRootPath = Directory.GetCurrentDirectory()
 });
 
-// Database
+// 🔴 REQUIRED FOR AZURE
+builder.WebHost.UseUrls("http://*:8080");
+
+// Services
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(
         builder.Configuration.GetConnectionString("DefaultConnection")
@@ -32,11 +27,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     )
 );
 
-// Dependency Injection
 builder.Services.AddScoped<INoteRepository, NoteRepository>();
 builder.Services.AddScoped<IAiService, AiService>();
 
-// CORS (frontend will call this API)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
@@ -45,7 +38,6 @@ builder.Services.AddCors(options =>
               .AllowAnyHeader());
 });
 
-// IMPORTANT: Fix Azure reverse proxy / Swagger localhost issue
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders =
@@ -55,24 +47,11 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 
 var app = builder.Build();
 
-// --------------------
-// Middleware
-// --------------------
-
 app.UseForwardedHeaders();
-
 app.UseCors("AllowAll");
 
-// Swagger enabled in ALL environments (including Azure)
 app.UseSwagger();
-app.UseSwaggerUI(c =>
-{
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Notes API v1");
-    c.RoutePrefix = "swagger";
-});
-
-app.UseHttpsRedirection();
-app.UseAuthorization();
+app.UseSwaggerUI();
 
 app.MapControllers();
 
