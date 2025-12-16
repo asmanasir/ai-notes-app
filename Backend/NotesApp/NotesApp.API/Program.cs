@@ -12,10 +12,13 @@ var builder = WebApplication.CreateBuilder(new WebApplicationOptions
     ContentRootPath = Directory.GetCurrentDirectory()
 });
 
-// 🔴 REQUIRED FOR AZURE
+// 🔴 REQUIRED FOR AZURE (App Service listens on 8080 internally)
 builder.WebHost.UseUrls("http://*:8080");
 
-// Services
+// --------------------
+// SERVICES
+// --------------------
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -30,14 +33,19 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<INoteRepository, NoteRepository>();
 builder.Services.AddScoped<IAiService, AiService>();
 
+// ✅ CORS (THIS IS THE KEY FIX)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader());
+    {
+        policy
+            .AllowAnyOrigin()
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
 });
 
+// Needed for Azure reverse proxy
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders =
@@ -47,11 +55,27 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 
 var app = builder.Build();
 
-app.UseForwardedHeaders();
-app.UseCors("AllowAll");
+// --------------------
+// MIDDLEWARE (ORDER MATTERS)
+// --------------------
 
+app.UseForwardedHeaders();
+
+// ✅ Swagger (safe before CORS)
 app.UseSwagger();
 app.UseSwaggerUI();
+
+// ❗❗ CORS MUST BE BEFORE MapControllers
+app.UseCors("AllowAll");
+
+// Optional but safe
+app.UseHttpsRedirection();
+
+app.UseAuthorization();
+
+// --------------------
+// ENDPOINTS
+// --------------------
 
 app.MapControllers();
 
