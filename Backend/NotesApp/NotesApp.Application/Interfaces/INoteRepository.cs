@@ -9,5 +9,13 @@ namespace NotesApp.Application.Interfaces
         Task AddAsync(Notes note);
         Task UpdateAsync(Notes note);
         Task DeleteAsync(Guid id);
+
+        // ✅ Paging
+        Task<(IEnumerable<Notes> Items, int TotalCount)> GetPagedAsync(
+            int page,
+            int pageSize,
+            string orderBy,
+            string direction
+        );
     }
 }

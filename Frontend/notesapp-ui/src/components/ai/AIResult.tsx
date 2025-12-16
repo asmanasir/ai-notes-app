@@ -1,4 +1,4 @@
-// src/components/ai/AIResult.tsx
+import { Check, X, Bot } from "lucide-react";
 import Button from "../ui/Button";
 
 interface Props {
@@ -11,18 +11,22 @@ export default function AIResult({ result, onApply, onClear }: Props) {
   if (!result) return null;
 
   return (
-    <div className="p-4 mb-4 bg-blue-50 dark:bg-gray-700 rounded-lg border border-blue-200 dark:border-gray-600">
-      <h3 className="text-lg font-semibold text-blue-700 dark:text-blue-300 mb-2">
-        AI Suggestion
-      </h3>
+    <div className="border border-purple-200 dark:border-purple-700 rounded-md p-3 bg-purple-50 dark:bg-purple-900/20">
+      <div className="flex items-center gap-2 mb-2 text-purple-700 dark:text-purple-300">
+        <Bot size={16} />
+        <span className="text-sm font-semibold">AI Suggestion</span>
+      </div>
 
-      <p className="whitespace-pre-line text-gray-800 dark:text-gray-200 mb-4">
-        {result}
-      </p>
+      <p className="text-sm mb-3 whitespace-pre-wrap">{result}</p>
 
       <div className="flex gap-2">
-        <Button onClick={onApply}>Apply</Button>
-        <Button variant="secondary" onClick={onClear}>
+        <Button size="sm" onClick={onApply}>
+          <Check size={14} className="mr-1" />
+          Apply
+        </Button>
+
+        <Button size="sm" variant="secondary" onClick={onClear}>
+          <X size={14} className="mr-1" />
           Dismiss
         </Button>
       </div>

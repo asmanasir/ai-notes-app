@@ -1,6 +1,7 @@
 import Button from "../ui/Button";
 import { exportNoteToPDF } from "../../utils/exportToPdf";
 import type { Note } from "../../features/notes/types";
+import { Pin, Pencil, Trash2, FileDown, Bot } from "lucide-react";
 
 interface Props {
   note: Note;
@@ -26,13 +27,15 @@ export default function NoteCard({
         <button
           onClick={() => onTogglePin(note.id)}
           title={note.pinned ? "Unpin note" : "Pin note"}
-          className={`text-xl transition ${
-            note.pinned
-              ? "text-yellow-400"
-              : "text-gray-400 hover:text-yellow-300"
-          }`}
         >
-          📌
+          <Pin
+            size={18}
+            className={
+              note.pinned
+                ? "text-yellow-400"
+                : "text-gray-400 hover:text-yellow-300"
+            }
+          />
         </button>
       </div>
 
@@ -43,19 +46,19 @@ export default function NoteCard({
 
       {/* AI badge */}
       {note.isAIGenerated && (
-        <span className="inline-block text-xs text-purple-700 bg-purple-100 dark:bg-purple-900/30 dark:text-purple-300 px-2 py-1 rounded">
-          🤖 AI Generated
+        <span className="inline-flex items-center gap-1 text-xs text-purple-700 bg-purple-100 dark:bg-purple-900/30 dark:text-purple-300 px-2 py-1 rounded">
+          <Bot size={14} /> AI Generated
         </span>
       )}
 
       {/* Actions */}
       <div className="flex flex-wrap gap-2 mt-auto">
         <Button size="sm" onClick={onEdit}>
-          Edit
+          <Pencil size={14} /> Edit
         </Button>
 
         <Button size="sm" variant="secondary" onClick={onDelete}>
-          Delete
+          <Trash2 size={14} /> Delete
         </Button>
 
         <Button
@@ -63,7 +66,7 @@ export default function NoteCard({
           variant="secondary"
           onClick={() => exportNoteToPDF(note.title, note.content)}
         >
-          Export PDF
+          <FileDown size={14} /> PDF
         </Button>
       </div>
     </div>

@@ -1,23 +1,30 @@
-import type { ButtonHTMLAttributes } from "react";
+import type { ButtonHTMLAttributes, ReactNode } from "react";
 import clsx from "clsx";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "secondary";
   size?: "sm" | "md";
+  icon?: ReactNode;
+  tooltip?: string;
 }
 
 export default function Button({
   children,
   variant = "primary",
   size = "md",
+  icon,
+  tooltip,
   className,
   ...props
 }: ButtonProps) {
   return (
     <button
       {...props}
+      title={tooltip}
       className={clsx(
-        "rounded font-medium transition disabled:opacity-50",
+        "inline-flex items-center gap-2 rounded font-medium transition",
+        "focus:outline-none focus:ring-2 focus:ring-blue-500",
+        "disabled:opacity-50 disabled:cursor-not-allowed",
 
         // Size
         size === "sm" && "px-2 py-1 text-sm",
@@ -32,6 +39,7 @@ export default function Button({
         className
       )}
     >
+      {icon && <span className="flex-shrink-0">{icon}</span>}
       {children}
     </button>
   );

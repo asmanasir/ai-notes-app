@@ -1,3 +1,12 @@
+import {
+  Sparkles,
+  Wand2,
+  PenLine,
+  Tags,
+  FileText,
+} from "lucide-react";
+import Button from "../ui/Button";
+
 interface Props {
   loading: boolean;
   onSummarize: () => void;
@@ -16,51 +25,68 @@ export default function AIToolsPanel({
   onGenerateNote,
 }: Props) {
   return (
-    <div className="border rounded-lg p-4 bg-white dark:bg-gray-900 dark:border-gray-700 shadow-sm">
-      <h3 className="font-semibold mb-3 text-gray-800 dark:text-gray-100">
+    <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 space-y-3">
+      {/* Header */}
+      <div className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+        <Sparkles size={16} className="text-purple-500" />
         AI Tools
-      </h3>
+      </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <button
+      {/* Primary AI action */}
+      <Button
+        disabled={loading}
+        onClick={onGenerateNote}
+        className="w-full justify-center gap-2"
+      >
+        <FileText size={16} />
+        Generate Note
+      </Button>
+
+      {/* Secondary tools */}
+      <div className="grid grid-cols-2 gap-2">
+        <Button
+          size="sm"
+          variant="secondary"
+          disabled={loading}
           onClick={onSummarize}
-          disabled={loading}
-          className="ai-btn"
+          className="justify-start gap-2"
         >
-          ⭐ Summarize
-        </button>
+          <Sparkles size={14} />
+          Summarize
+        </Button>
 
-        <button
+        <Button
+          size="sm"
+          variant="secondary"
+          disabled={loading}
           onClick={onRewrite}
-          disabled={loading}
-          className="ai-btn"
+          className="justify-start gap-2"
         >
-          🔄 Rewrite
-        </button>
+          <Wand2 size={14} />
+          Rewrite
+        </Button>
 
-        <button
+        <Button
+          size="sm"
+          variant="secondary"
+          disabled={loading}
           onClick={onImprove}
-          disabled={loading}
-          className="ai-btn"
+          className="justify-start gap-2"
         >
-          ✍ Improve Writing
-        </button>
+          <PenLine size={14} />
+          Improve
+        </Button>
 
-        <button
+        <Button
+          size="sm"
+          variant="secondary"
+          disabled={loading}
           onClick={onGenerateTags}
-          disabled={loading}
-          className="ai-btn"
+          className="justify-start gap-2"
         >
-          🏷 Generate Tags
-        </button>
-
-        <button
-          onClick={onGenerateNote}
-          disabled={loading}
-          className="ai-btn col-span-2"
-        >
-          📝 Generate Note
-        </button>
+          <Tags size={14} />
+          Tags
+        </Button>
       </div>
     </div>
   );

@@ -1,7 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using NotesApp.Application.DTOs.Common;
+using NotesApp.Application.DTOs.Notes;
 using NotesApp.Application.Interfaces;
 using NotesApp.Domain.Entities;
-using NotesApp.Application.DTOs.Notes;
 
 namespace NotesApp.API.Controllers
 {
@@ -9,38 +10,54 @@ namespace NotesApp.API.Controllers
     [Route("api/[controller]")]
     public class NotesController : ControllerBase
     {
-        private readonly INoteRepository _repo;
+        private readonly INoteRepository _noteRepository;
 
-        public NotesController(INoteRepository repo)
+        public NotesController(INoteRepository noteRepository)
         {
-            _repo = repo;
+            _noteRepository = noteRepository;
         }
 
+        // ✅ PAGED GET (MAIN LIST)
+        // GET: api/notes?page=1&pageSize=10
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<NoteResponseDto>>> GetAll()
+        public async Task<ActionResult<PagedResultDto<NoteResponseDto>>> GetPaged(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string orderBy = "updatedAt",
+            [FromQuery] string direction = "desc")
         {
-            var notes = await _repo.GetAllAsync();
+            if (page <= 0) page = 1;
+            if (pageSize <= 0 || pageSize > 50) pageSize = 10;
 
-            var result = notes.Select(n => new NoteResponseDto
+            var (items, totalCount) =
+                await _noteRepository.GetPagedAsync(page, pageSize, orderBy, direction);
+
+            var response = new PagedResultDto<NoteResponseDto>
             {
-                Id = n.Id,
-                Title = n.Title,
-                Content = n.Content,
-                Tags = n.Tags,
-                Summary = n.Summary,
-                CreatedAt = n.CreatedAt,
-                UpdatedAt = n.UpdatedAt
-            });
+                PageNumber = page,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                Items = items.Select(n => new NoteResponseDto
+                {
+                    Id = n.Id,
+                    Title = n.Title,
+                    Content = n.Content,
+                    Tags = n.Tags,
+                    Summary = n.Summary,
+                    CreatedAt = n.CreatedAt,
+                    UpdatedAt = n.UpdatedAt
+                }).ToList()
+            };
 
-            return Ok(result);
+            return Ok(response);
         }
 
-        [HttpGet("{id:guid}")]
-        public async Task<ActionResult<NoteResponseDto>> GetById(Guid id)
+        // GET: api/notes/{id}
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(Guid id)
         {
-            var note = await _repo.GetByIdAsync(id);
-            if (note == null)
-                return NotFound();
+            var note = await _noteRepository.GetByIdAsync(id);
+            if (note == null) return NotFound();
 
             return Ok(new NoteResponseDto
             {
@@ -54,21 +71,22 @@ namespace NotesApp.API.Controllers
             });
         }
 
+        // POST: api/notes
         [HttpPost]
-        public async Task<ActionResult<NoteResponseDto>> Create(CreateNoteDto dto)
+        public async Task<IActionResult> Create(CreateNoteDto dto)
         {
             var note = new Notes
             {
                 Id = Guid.NewGuid(),
-                Title = dto.Title ?? string.Empty,
-                Content = dto.Content ?? string.Empty,
-                Tags = dto.Tags ?? string.Empty,
-                Summary = string.Empty,
+                Title = dto.Title,
+                Content = dto.Content,
+                Tags = dto.Tags,
+                Summary = dto.Summary,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
 
-            await _repo.AddAsync(note);
+            await _noteRepository.AddAsync(note);
 
             return Ok(new NoteResponseDto
             {
@@ -82,37 +100,29 @@ namespace NotesApp.API.Controllers
             });
         }
 
-        [HttpPut("{id:guid}")]
-        public async Task<ActionResult<NoteResponseDto>> Update(Guid id, UpdateNoteDto dto)
+        // PUT: api/notes/{id}
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(Guid id, UpdateNoteDto dto)
         {
-            var note = await _repo.GetByIdAsync(id);
-            if (note == null)
-                return NotFound();
+            var existing = await _noteRepository.GetByIdAsync(id);
+            if (existing == null) return NotFound();
 
-            note.Title = dto.Title ?? note.Title;
-            note.Content = dto.Content ?? note.Content;
-            note.Tags = dto.Tags ?? note.Tags;
-            note.Summary = dto.Summary ?? note.Summary;
-            note.UpdatedAt = DateTime.UtcNow;
+            existing.Title = dto.Title;
+            existing.Content = dto.Content;
+            existing.Tags = dto.Tags;
+            existing.Summary = dto.Summary;
+            existing.UpdatedAt = DateTime.UtcNow;
 
-            await _repo.UpdateAsync(note);
+            await _noteRepository.UpdateAsync(existing);
 
-            return Ok(new NoteResponseDto
-            {
-                Id = note.Id,
-                Title = note.Title,
-                Content = note.Content,
-                Tags = note.Tags,
-                Summary = note.Summary,
-                CreatedAt = note.CreatedAt,
-                UpdatedAt = note.UpdatedAt
-            });
+            return Ok(existing);
         }
 
-        [HttpDelete("{id:guid}")]
+        // DELETE: api/notes/{id}
+        [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(Guid id)
         {
-            await _repo.DeleteAsync(id);
+            await _noteRepository.DeleteAsync(id);
             return NoContent();
         }
     }

@@ -1,36 +1,39 @@
-import { useEffect, useState, useCallback } from "react";
-import type { Note } from "./types";
-import { notesApi } from "../../services/notesApi";
+import { useCallback, useEffect, useState } from "react";
+import { notesApi } from "../services/notesApi";
+import type { Note } from "../features/notes/types";
 
-export function useNotes() {
+export function useNotesPagination(page: number, pageSize: number) {
   const [notes, setNotes] = useState<Note[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const PAGE = 1;
-  const PAGE_SIZE = 20;
+  const [totalCount, setTotalCount] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // ========================
-  // Fetch notes
+  // Fetch notes (shared)
   // ========================
   const loadNotes = useCallback(async () => {
-    setLoading(true);
     try {
-      const result = await notesApi.getNotesPaged(PAGE, PAGE_SIZE);
-      setNotes(result.items);
-    } catch (err) {
-      console.error("Failed to load notes", err);
+      setLoading(true);
+      setError(null);
+
+      const data = await notesApi.getNotesPaged(page, pageSize);
+
+      setNotes(data.items);
+      setTotalCount(data.totalCount);
+    } catch {
+      setError("Failed to load notes");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page, pageSize]);
 
-  // Fetch on mount
+  // Fetch on mount & page change
   useEffect(() => {
     loadNotes();
   }, [loadNotes]);
 
   // ========================
-  // Create note
+  // Create
   // ========================
   const addNote = async (title: string, content: string) => {
     await notesApi.createNote(title, content);
@@ -38,7 +41,7 @@ export function useNotes() {
   };
 
   // ========================
-  // Update note
+  // Update
   // ========================
   const updateNote = async (
     id: string,
@@ -50,30 +53,25 @@ export function useNotes() {
   };
 
   // ========================
-  // Delete note
+  // Delete
   // ========================
   const deleteNote = async (id: string) => {
     await notesApi.deleteNote(id);
     await loadNotes(); // 🔁 refetch
   };
 
-  // ========================
-  // Toggle pin (local only unless backend supports it)
-  // ========================
-  const togglePin = (id: string) => {
-    setNotes((prev) =>
-      prev.map((n) =>
-        n.id === id ? { ...n, pinned: !n.pinned } : n
-      )
-    );
-  };
-
   return {
     notes,
+    totalCount,
     loading,
+    error,
+
+    // actions
     addNote,
     updateNote,
     deleteNote,
-    togglePin,
+
+    // manual reload (optional)
+    reload: loadNotes,
   };
 }

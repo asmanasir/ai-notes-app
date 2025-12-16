@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Input from "../ui/Input";
 import Textarea from "../ui/Textarea";
 import Button from "../ui/Button";
@@ -25,13 +25,41 @@ export default function NoteEditor({
   const [loading, setLoading] = useState(false);
   const [isAIGenerated, setIsAIGenerated] = useState(false);
 
+  const titleRef = useRef<HTMLInputElement>(null);
+
   const maxChars = 2000;
   const isValid =
     title.trim().length > 0 && content.trim().length > 0;
 
-  // =========================
-  // AI handler
-  // =========================
+  /* =========================
+     Auto-focus title on open
+  ========================= */
+  useEffect(() => {
+    titleRef.current?.focus();
+  }, []);
+
+  /* =========================
+     Cmd / Ctrl + Enter to save
+  ========================= */
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (
+        (e.metaKey || e.ctrlKey) &&
+        e.key === "Enter" &&
+        isValid &&
+        !loading
+      ) {
+        onSave(title.trim(), content.trim());
+      }
+    };
+
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [title, content, isValid, loading, onSave]);
+
+  /* =========================
+     AI handler
+  ========================= */
   const handleAI = async (
     callback: () => Promise<{ output: string }>
   ) => {
@@ -43,27 +71,30 @@ export default function NoteEditor({
       const output = res.output?.trim();
 
       if (!output) {
-        setAiResult("⚠ Empty AI response.");
+        setAiResult("Empty AI response.");
       } else {
         setAiResult(output);
       }
     } catch (err) {
       console.error("AI error:", err);
-      setAiResult("⚠ AI service error.");
+      setAiResult("AI service error.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="relative z-50 flex flex-col gap-4 p-4 rounded
-                    bg-white dark:bg-gray-900
-                    text-gray-900 dark:text-gray-100">
-
+    <div
+      className="
+        relative z-50 flex flex-col gap-4
+        p-4 rounded-lg
+        bg-white dark:bg-gray-900
+        text-gray-900 dark:text-gray-100
+        max-h-[85vh] overflow-y-auto
+      "
+    >
       {/* ================= HEADER ================= */}
-      <div className="flex justify-between items-center">
-        <h2 className="text-lg font-semibold">Note Editor</h2>
-      </div>
+      <h2 className="text-lg font-semibold">Note Editor</h2>
 
       {/* ================= AI TOOLS ================= */}
       <AIToolsPanel
@@ -76,17 +107,23 @@ export default function NoteEditor({
       />
 
       {/* ================= DISCLAIMER ================= */}
-      <div className="text-xs text-yellow-700 bg-yellow-50 dark:bg-yellow-900/20
-                      border border-yellow-200 dark:border-yellow-800
-                      rounded p-2">
-        ⚠ AI-generated content is for informational purposes only and is not a
+      <div
+        className="
+          text-xs
+          bg-yellow-50 text-yellow-800
+          dark:bg-yellow-900/20 dark:text-yellow-300
+          border border-yellow-200 dark:border-yellow-800
+          rounded p-2
+        "
+      >
+        AI-generated content is for informational purposes only and is not a
         substitute for professional medical advice, diagnosis, or treatment.
       </div>
 
       {/* ================= AI LOADING ================= */}
       {loading && (
         <div className="text-sm text-blue-500">
-          🤖 AI is thinking...
+          AI is thinking…
         </div>
       )}
 
@@ -105,15 +142,22 @@ export default function NoteEditor({
 
       {/* ================= AI BADGE ================= */}
       {isAIGenerated && (
-        <div className="text-xs text-purple-600 bg-purple-50 dark:bg-purple-900/20
-                        border border-purple-200 dark:border-purple-800
-                        rounded p-2">
-          🤖 This content was generated using AI
+        <div
+          className="
+            text-xs
+            bg-purple-50 text-purple-700
+            dark:bg-purple-900/20 dark:text-purple-300
+            border border-purple-200 dark:border-purple-800
+            rounded p-2
+          "
+        >
+          This content was generated using AI
         </div>
       )}
 
       {/* ================= TITLE ================= */}
       <Input
+        ref={titleRef}
         placeholder="Note title..."
         value={title}
         onChange={(e) => setTitle(e.target.value)}
@@ -125,6 +169,7 @@ export default function NoteEditor({
         value={content}
         maxLength={maxChars}
         onChange={(e) => setContent(e.target.value)}
+        className="min-h-[260px]"
       />
 
       {/* Character Counter */}
@@ -135,17 +180,25 @@ export default function NoteEditor({
       {/* Validation */}
       {!isValid && (
         <p className="text-sm text-red-500">
-          ⚠ Title and content are required.
+          Title and content are required.
         </p>
       )}
 
-      {/* ================= ACTIONS ================= */}
-      <div className="flex gap-2">
+      {/* ================= STICKY ACTIONS ================= */}
+      <div
+        className="
+          sticky bottom-0 left-0
+          bg-white dark:bg-gray-900
+          border-t border-gray-200 dark:border-gray-700
+          pt-3 mt-2
+          flex gap-2
+        "
+      >
         <Button
-          disabled={!isValid}
+          disabled={!isValid || loading}
           onClick={() => onSave(title.trim(), content.trim())}
         >
-          Save
+          {loading ? "Saving..." : "Save"}
         </Button>
 
         <Button
