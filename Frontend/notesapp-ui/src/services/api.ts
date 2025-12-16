@@ -1,5 +1,8 @@
 import axios from "axios";
 
 export const api = axios.create({
-  baseURL: "https://noteai-api-czzchyd7emema7fs.centralus-01.azurewebsites.net/api",
+  baseURL: import.meta.env.VITE_API_BASE_URL,
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
