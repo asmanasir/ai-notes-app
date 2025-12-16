@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using NotesApp.Application.Interfaces;
 using NotesApp.Application.Services;
@@ -7,10 +8,23 @@ using NotesApp.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+// --------------------
+// Services
+// --------------------
 
+builder.Services.AddControllers();
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new()
+    {
+        Title = "Notes API",
+        Version = "v1"
+    });
+});
+
+// Database
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(
         builder.Configuration.GetConnectionString("DefaultConnection")
@@ -18,9 +32,11 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     )
 );
 
+// Dependency Injection
 builder.Services.AddScoped<INoteRepository, NoteRepository>();
 builder.Services.AddScoped<IAiService, AiService>();
 
+// CORS (frontend will call this API)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
@@ -29,10 +45,25 @@ builder.Services.AddCors(options =>
               .AllowAnyHeader());
 });
 
+// IMPORTANT: Fix Azure reverse proxy / Swagger localhost issue
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders =
+        ForwardedHeaders.XForwardedFor |
+        ForwardedHeaders.XForwardedProto;
+});
+
 var app = builder.Build();
+
+// --------------------
+// Middleware
+// --------------------
+
+app.UseForwardedHeaders();
 
 app.UseCors("AllowAll");
 
+// Swagger enabled in ALL environments (including Azure)
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
@@ -42,5 +73,7 @@ app.UseSwaggerUI(c =>
 
 app.UseHttpsRedirection();
 app.UseAuthorization();
+
 app.MapControllers();
+
 app.Run();
