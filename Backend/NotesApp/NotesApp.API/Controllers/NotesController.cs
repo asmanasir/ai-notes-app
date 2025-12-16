@@ -1,69 +1,119 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using NotesApp.Application.Interfaces;
 using NotesApp.Domain.Entities;
+using NotesApp.Application.DTOs.Notes;
 
 namespace NotesApp.API.Controllers
 {
-    [Route("api/[controller]")]
     [ApiController]
+    [Route("api/[controller]")]
     public class NotesController : ControllerBase
     {
-        private readonly INoteRepository _noteRepository;
+        private readonly INoteRepository _repo;
 
-        public NotesController(INoteRepository noteRepository)
+        public NotesController(INoteRepository repo)
         {
-            _noteRepository = noteRepository;
+            _repo = repo;
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Notes>>> GetAll()
+        public async Task<ActionResult<IEnumerable<NoteResponseDto>>> GetAll()
         {
-            var notes = await _noteRepository.GetAllAsync();
-            return Ok(notes);
+            var notes = await _repo.GetAllAsync();
+
+            var result = notes.Select(n => new NoteResponseDto
+            {
+                Id = n.Id,
+                Title = n.Title,
+                Content = n.Content,
+                Tags = n.Tags,
+                Summary = n.Summary,
+                CreatedAt = n.CreatedAt,
+                UpdatedAt = n.UpdatedAt
+            });
+
+            return Ok(result);
         }
 
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Notes>> Get(Guid id)
+        [HttpGet("{id:guid}")]
+        public async Task<ActionResult<NoteResponseDto>> GetById(Guid id)
         {
-            var note = await _noteRepository.GetByIdAsync(id);
+            var note = await _repo.GetByIdAsync(id);
             if (note == null)
                 return NotFound();
 
-            return Ok(note);
+            return Ok(new NoteResponseDto
+            {
+                Id = note.Id,
+                Title = note.Title,
+                Content = note.Content,
+                Tags = note.Tags,
+                Summary = note.Summary,
+                CreatedAt = note.CreatedAt,
+                UpdatedAt = note.UpdatedAt
+            });
         }
 
         [HttpPost]
-        public async Task<ActionResult> Create(Notes note)
+        public async Task<ActionResult<NoteResponseDto>> Create(CreateNoteDto dto)
         {
-            note.Id = Guid.NewGuid();
-            note.CreatedAt = DateTime.UtcNow;
-            note.UpdatedAt = DateTime.UtcNow;
+            var note = new Notes
+            {
+                Id = Guid.NewGuid(),
+                Title = dto.Title ?? string.Empty,
+                Content = dto.Content ?? string.Empty,
+                Tags = dto.Tags ?? string.Empty,
+                Summary = string.Empty,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
 
-            await _noteRepository.AddAsync(note);
-            return Ok(note);
+            await _repo.AddAsync(note);
+
+            return Ok(new NoteResponseDto
+            {
+                Id = note.Id,
+                Title = note.Title,
+                Content = note.Content,
+                Tags = note.Tags,
+                Summary = note.Summary,
+                CreatedAt = note.CreatedAt,
+                UpdatedAt = note.UpdatedAt
+            });
         }
 
-        [HttpPut("{id}")]
-        public async Task<ActionResult> Update(Guid id, Notes updatedNote)
+        [HttpPut("{id:guid}")]
+        public async Task<ActionResult<NoteResponseDto>> Update(Guid id, UpdateNoteDto dto)
         {
-            var existing = await _noteRepository.GetByIdAsync(id);
-            if (existing == null)
+            var note = await _repo.GetByIdAsync(id);
+            if (note == null)
                 return NotFound();
 
-            existing.Title = updatedNote.Title;
-            existing.Content = updatedNote.Content;
-            existing.Tags = updatedNote.Tags;
-            existing.UpdatedAt = DateTime.UtcNow;
+            note.Title = dto.Title ?? note.Title;
+            note.Content = dto.Content ?? note.Content;
+            note.Tags = dto.Tags ?? note.Tags;
+            note.Summary = dto.Summary ?? note.Summary;
+            note.UpdatedAt = DateTime.UtcNow;
 
-            await _noteRepository.UpdateAsync(existing);
-            return Ok(existing);
+            await _repo.UpdateAsync(note);
+
+            return Ok(new NoteResponseDto
+            {
+                Id = note.Id,
+                Title = note.Title,
+                Content = note.Content,
+                Tags = note.Tags,
+                Summary = note.Summary,
+                CreatedAt = note.CreatedAt,
+                UpdatedAt = note.UpdatedAt
+            });
         }
 
-        [HttpDelete("{id}")]
-        public async Task<ActionResult> Delete(Guid id)
+        [HttpDelete("{id:guid}")]
+        public async Task<IActionResult> Delete(Guid id)
         {
-            await _noteRepository.DeleteAsync(id);
-            return Ok();
+            await _repo.DeleteAsync(id);
+            return NoContent();
         }
     }
 }

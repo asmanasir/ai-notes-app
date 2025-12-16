@@ -6,18 +6,10 @@ using NotesApp.Infrastructure.Data;
 using NotesApp.Infrastructure.Repositories;
 using NotesApp.Infrastructure.Services;
 
-var builder = WebApplication.CreateBuilder(new WebApplicationOptions
-{
-    Args = args,
-    ContentRootPath = Directory.GetCurrentDirectory()
-});
+var builder = WebApplication.CreateBuilder(args);
 
-// 🔴 REQUIRED FOR AZURE (App Service listens on 8080 internally)
+// Azure compatibility
 builder.WebHost.UseUrls("http://*:8080");
-
-// --------------------
-// SERVICES
-// --------------------
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -33,19 +25,14 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<INoteRepository, NoteRepository>();
 builder.Services.AddScoped<IAiService, AiService>();
 
-// ✅ CORS (THIS IS THE KEY FIX)
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
-    {
-        policy
-            .AllowAnyOrigin()
-            .AllowAnyHeader()
-            .AllowAnyMethod();
-    });
+    options.AddPolicy("AllowFrontend", policy =>
+        policy.AllowAnyOrigin()
+              .AllowAnyHeader()
+              .AllowAnyMethod());
 });
 
-// Needed for Azure reverse proxy
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders =
@@ -55,28 +42,11 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 
 var app = builder.Build();
 
-// --------------------
-// MIDDLEWARE (ORDER MATTERS)
-// --------------------
-
 app.UseForwardedHeaders();
+app.UseCors("AllowFrontend");
 
-// ✅ Swagger (safe before CORS)
 app.UseSwagger();
 app.UseSwaggerUI();
 
-// ❗❗ CORS MUST BE BEFORE MapControllers
-app.UseCors("AllowAll");
-
-// Optional but safe
-app.UseHttpsRedirection();
-
-app.UseAuthorization();
-
-// --------------------
-// ENDPOINTS
-// --------------------
-
 app.MapControllers();
-
 app.Run();

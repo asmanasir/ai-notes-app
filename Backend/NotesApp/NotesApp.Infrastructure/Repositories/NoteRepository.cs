@@ -16,12 +16,17 @@ namespace NotesApp.Infrastructure.Repositories
 
         public async Task<IEnumerable<Notes>> GetAllAsync()
         {
-            return await _context.Notes.ToListAsync();
+            return await _context.Notes
+                .AsNoTracking()
+                .OrderByDescending(n => n.UpdatedAt)
+                .ToListAsync();
         }
 
         public async Task<Notes?> GetByIdAsync(Guid id)
         {
-            return await _context.Notes.FirstOrDefaultAsync(n => n.Id == id);
+            return await _context.Notes
+                .AsNoTracking()
+                .FirstOrDefaultAsync(n => n.Id == id);
         }
 
         public async Task AddAsync(Notes note)
@@ -38,12 +43,12 @@ namespace NotesApp.Infrastructure.Repositories
 
         public async Task DeleteAsync(Guid id)
         {
-            var note = await GetByIdAsync(id);
-            if (note != null)
-            {
-                _context.Notes.Remove(note);
-                await _context.SaveChangesAsync();
-            }
+            var note = await _context.Notes.FindAsync(id);
+            if (note == null)
+                return;
+
+            _context.Notes.Remove(note);
+            await _context.SaveChangesAsync();
         }
     }
 }
