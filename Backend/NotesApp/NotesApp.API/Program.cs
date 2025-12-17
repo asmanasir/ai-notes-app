@@ -1,86 +1,79 @@
-using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Azure.Cosmos;
 using NotesApp.Application.Interfaces;
-using NotesApp.Application.Services;
 using NotesApp.Infrastructure.Repositories;
-using NotesApp.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ===============================
+// ==========================
 // Controllers & Swagger
-// ===============================
+// ==========================
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// ===============================
-// Configuration
-// ===============================
-var configuration = builder.Configuration;
+// ==========================
+// CORS (VERY IMPORTANT)
+// ==========================
+var allowedOrigins = builder.Configuration["AllowedOrigins"];
 
-// ===============================
-// Cosmos DB
-// ===============================
-builder.Services.AddSingleton<CosmosClient>(sp =>
+builder.Services.AddCors(options =>
 {
-    var endpoint = configuration["CosmosDb:AccountEndpoint"];
-    var key = configuration["CosmosDb:AccountKey"];
-
-    if (string.IsNullOrWhiteSpace(endpoint) || string.IsNullOrWhiteSpace(key))
+    options.AddPolicy("AllowFrontend", policy =>
     {
-        throw new InvalidOperationException("Cosmos DB configuration is missing.");
-    }
+        if (!string.IsNullOrWhiteSpace(allowedOrigins))
+        {
+            policy.WithOrigins(allowedOrigins.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+        }
+        else
+        {
+            // fallback (useful for local testing)
+            policy.AllowAnyOrigin()
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+        }
+    });
+});
+
+// ==========================
+// Cosmos DB
+// ==========================
+builder.Services.AddSingleton(sp =>
+{
+    var config = sp.GetRequiredService<IConfiguration>();
+
+    var endpoint = config["CosmosDb:AccountEndpoint"];
+    var key = config["CosmosDb:AccountKey"];
+
+    if (string.IsNullOrEmpty(endpoint) || string.IsNullOrEmpty(key))
+        throw new InvalidOperationException("Cosmos DB configuration is missing");
 
     return new CosmosClient(endpoint, key);
 });
 
+// ==========================
+// Repositories
+// ==========================
 builder.Services.AddScoped<INoteRepository, CosmosNoteRepository>();
-
-// ===============================
-// AI Service
-// ===============================
-builder.Services.AddScoped<IAiService, AiService>();
-
-// ===============================
-// CORS (Azure Static Web App)
-// ===============================
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowFrontend", policy =>
-        policy
-            .WithOrigins(
-                "https://orange-rock-0ad77e71e.3.azurestaticapps.net"
-            )
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-    );
-});
-
-// ===============================
-// Forwarded Headers (Azure-safe)
-// ===============================
-builder.Services.Configure<ForwardedHeadersOptions>(options =>
-{
-    options.ForwardedHeaders =
-        ForwardedHeaders.XForwardedFor |
-        ForwardedHeaders.XForwardedProto;
-});
 
 var app = builder.Build();
 
-// ===============================
-// Middleware order (IMPORTANT)
-// ===============================
-app.UseForwardedHeaders();
-
-app.UseCors("AllowFrontend"); // 🔥 MUST be before MapControllers
-
+// ==========================
+// Middleware pipeline
+// ==========================
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseHttpsRedirection();
+
+// ⬇️ CORS MUST be before MapControllers
+app.UseCors("AllowFrontend");
+
+app.UseAuthorization();
 
 app.MapControllers();
 
