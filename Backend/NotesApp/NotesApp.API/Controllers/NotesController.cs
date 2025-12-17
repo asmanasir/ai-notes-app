@@ -11,28 +11,32 @@ namespace NotesApp.API.Controllers
     public class NotesController : ControllerBase
     {
         private readonly INoteRepository _noteRepository;
+        private const string UserId = "demo-user";
 
         public NotesController(INoteRepository noteRepository)
         {
             _noteRepository = noteRepository;
         }
 
-        // ✅ PAGED GET (MAIN LIST)
-        // GET: api/notes?page=1&pageSize=10
+        // ===========================
+        // GET (paged)
+        // ===========================
         [HttpGet]
         public async Task<ActionResult<PagedResultDto<NoteResponseDto>>> GetPaged(
-            [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 10,
-            [FromQuery] string orderBy = "updatedAt",
-            [FromQuery] string direction = "desc")
+            int page = 1,
+            int pageSize = 10,
+            string orderBy = "updatedAt",
+            string direction = "desc")
         {
-            if (page <= 0) page = 1;
-            if (pageSize <= 0 || pageSize > 50) pageSize = 10;
-
             var (items, totalCount) =
-                await _noteRepository.GetPagedAsync(page, pageSize, orderBy, direction);
+                await _noteRepository.GetPagedAsync(
+                    page,
+                    pageSize,
+                    orderBy,
+                    direction,
+                    UserId);
 
-            var response = new PagedResultDto<NoteResponseDto>
+            return Ok(new PagedResultDto<NoteResponseDto>
             {
                 PageNumber = page,
                 PageSize = pageSize,
@@ -47,16 +51,16 @@ namespace NotesApp.API.Controllers
                     CreatedAt = n.CreatedAt,
                     UpdatedAt = n.UpdatedAt
                 }).ToList()
-            };
-
-            return Ok(response);
+            });
         }
 
-        // GET: api/notes/{id}
+        // ===========================
+        // GET by id
+        // ===========================
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(Guid id)
+        public async Task<IActionResult> GetById(string id)
         {
-            var note = await _noteRepository.GetByIdAsync(id);
+            var note = await _noteRepository.GetByIdAsync(id, UserId);
             if (note == null) return NotFound();
 
             return Ok(new NoteResponseDto
@@ -71,40 +75,36 @@ namespace NotesApp.API.Controllers
             });
         }
 
-        // POST: api/notes
+        // ===========================
+        // POST
+        // ===========================
         [HttpPost]
         public async Task<IActionResult> Create(CreateNoteDto dto)
         {
             var note = new Notes
             {
-                Id = Guid.NewGuid(),
+                Id = Guid.NewGuid().ToString(),
                 Title = dto.Title,
                 Content = dto.Content,
                 Tags = dto.Tags,
                 Summary = dto.Summary,
                 CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                UpdatedAt = DateTime.UtcNow,
+                UserId = UserId
             };
 
             await _noteRepository.AddAsync(note);
 
-            return Ok(new NoteResponseDto
-            {
-                Id = note.Id,
-                Title = note.Title,
-                Content = note.Content,
-                Tags = note.Tags,
-                Summary = note.Summary,
-                CreatedAt = note.CreatedAt,
-                UpdatedAt = note.UpdatedAt
-            });
+            return Ok(note);
         }
 
-        // PUT: api/notes/{id}
+        // ===========================
+        // PUT
+        // ===========================
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(Guid id, UpdateNoteDto dto)
+        public async Task<IActionResult> Update(string id, UpdateNoteDto dto)
         {
-            var existing = await _noteRepository.GetByIdAsync(id);
+            var existing = await _noteRepository.GetByIdAsync(id, UserId);
             if (existing == null) return NotFound();
 
             existing.Title = dto.Title;
@@ -114,15 +114,16 @@ namespace NotesApp.API.Controllers
             existing.UpdatedAt = DateTime.UtcNow;
 
             await _noteRepository.UpdateAsync(existing);
-
             return Ok(existing);
         }
 
-        // DELETE: api/notes/{id}
+        // ===========================
+        // DELETE
+        // ===========================
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(Guid id)
+        public async Task<IActionResult> Delete(string id)
         {
-            await _noteRepository.DeleteAsync(id);
+            await _noteRepository.DeleteAsync(id, UserId);
             return NoContent();
         }
     }

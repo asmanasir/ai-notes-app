@@ -2,9 +2,9 @@
 {
     public class UpdateNoteDto
     {
-        public string Title { get; set; } = string.Empty;
-        public string Content { get; set; } = string.Empty;
-        public string Tags { get; set; } = string.Empty;
-        public string Summary { get; set; } = string.Empty;
+        public string Title { get; set; } = default!;
+        public string Content { get; set; } = default!;
+        public List<string> Tags { get; set; } = new();
+        public string? Summary { get; set; }
     }
 }

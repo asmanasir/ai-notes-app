@@ -2,11 +2,11 @@
 {
     public class NoteResponseDto
     {
-        public Guid Id { get; set; }
-        public string Title { get; set; } = string.Empty;
-        public string Content { get; set; } = string.Empty;
-        public string Tags { get; set; } = string.Empty;
-        public string Summary { get; set; } = string.Empty;
+        public string Id { get; set; } = default!;
+        public string Title { get; set; } = default!;
+        public string Content { get; set; } = default!;
+        public List<string> Tags { get; set; } = new();
+        public string? Summary { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
     }

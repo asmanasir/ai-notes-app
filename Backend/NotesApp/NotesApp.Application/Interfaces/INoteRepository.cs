@@ -4,18 +4,18 @@ namespace NotesApp.Application.Interfaces
 {
     public interface INoteRepository
     {
-        Task<IEnumerable<Notes>> GetAllAsync();
-        Task<Notes?> GetByIdAsync(Guid id);
+        Task<IEnumerable<Notes>> GetAllAsync(string userId);
+        Task<Notes?> GetByIdAsync(string id, string userId);
         Task AddAsync(Notes note);
         Task UpdateAsync(Notes note);
-        Task DeleteAsync(Guid id);
+        Task DeleteAsync(string id, string userId);
 
-        // ✅ Paging
         Task<(IEnumerable<Notes> Items, int TotalCount)> GetPagedAsync(
             int page,
             int pageSize,
             string orderBy,
-            string direction
+            string direction,
+            string userId
         );
     }
 }

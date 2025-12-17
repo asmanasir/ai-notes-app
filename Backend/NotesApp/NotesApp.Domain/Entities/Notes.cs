@@ -1,22 +1,23 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Newtonsoft.Json;
 
 namespace NotesApp.Domain.Entities
 {
     public class Notes
     {
-        public Guid Id { get; set; }
+        [JsonProperty("id")]
+        public string Id { get; set; } = Guid.NewGuid().ToString();
 
-        public string Title { get; set; } = string.Empty;
-        public string Content { get; set; } = string.Empty;
-        public string Tags { get; set; } = string.Empty;
-        public string Summary { get; set; } = string.Empty;
+        [JsonProperty("userId")]
+        public string UserId { get; set; } = default!;
+
+        public string Title { get; set; } = default!;
+        public string Content { get; set; } = default!;
+
+        public List<string> Tags { get; set; } = new();
+
+        public string? Summary { get; set; }
 
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
     }
 }
-
