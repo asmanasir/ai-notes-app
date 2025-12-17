@@ -19,15 +19,36 @@ export const notesApi = {
     return res.data;
   },
 
-  async createNote(title: string, content: string) {
-    const res = await api.post("/notes", { title, content });
-    return res.data;
-  },
+  async createNote(
+  title: string,
+  content: string,
+  tags: string[] = [],
+  summary: string | null = null
+) {
+  const res = await api.post("/notes", {
+    title,
+    content,
+    tags,
+    summary,
+  });
+  return res.data;
+},
 
-  async updateNote(id: string, title: string, content: string) {
-    const res = await api.put(`/notes/${id}`, { title, content });
-    return res.data;
-  },
+  async updateNote(
+  id: string,
+  title: string,
+  content: string,
+  tags: string[] = [],
+  summary: string | null = null
+) {
+  const res = await api.put(`/notes/${id}`, {
+    title,
+    content,
+    tags,
+    summary,
+  });
+  return res.data;
+},
 
   async deleteNote(id: string) {
     await api.delete(`/notes/${id}`);
