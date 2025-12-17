@@ -2,12 +2,21 @@
 using Microsoft.Extensions.Configuration;
 using NotesApp.Application.Interfaces;
 using NotesApp.Domain.Entities;
+using System.Net;
 
 namespace NotesApp.Infrastructure.Repositories
 {
     public class CosmosNoteRepository : INoteRepository
     {
         private readonly Container _container;
+
+        // Allowed sortable fields (Cosmos is case-sensitive!)
+        private static readonly HashSet<string> AllowedOrderBy = new()
+        {
+            "createdAt",
+            "updatedAt",
+            "title"
+        };
 
         public CosmosNoteRepository(
             CosmosClient cosmosClient,
@@ -19,7 +28,8 @@ namespace NotesApp.Infrastructure.Repositories
             if (string.IsNullOrWhiteSpace(databaseName) ||
                 string.IsNullOrWhiteSpace(containerName))
             {
-                throw new InvalidOperationException("Cosmos DB DatabaseName or ContainerName is missing.");
+                throw new InvalidOperationException(
+                    "CosmosDb configuration is missing DatabaseName or ContainerName.");
             }
 
             _container = cosmosClient
@@ -32,6 +42,12 @@ namespace NotesApp.Infrastructure.Repositories
         // =====================================================
         public async Task AddAsync(Notes note)
         {
+            if (string.IsNullOrWhiteSpace(note.UserId))
+                throw new InvalidOperationException("UserId is required (Cosmos partition key).");
+
+            if (string.IsNullOrWhiteSpace(note.Id))
+                note.Id = Guid.NewGuid().ToString();
+
             await _container.CreateItemAsync(
                 note,
                 new PartitionKey(note.UserId)
@@ -48,7 +64,6 @@ namespace NotesApp.Infrastructure.Repositories
             ).WithParameter("@userId", userId);
 
             var iterator = _container.GetItemQueryIterator<Notes>(query);
-
             var results = new List<Notes>();
 
             while (iterator.HasMoreResults)
@@ -74,7 +89,7 @@ namespace NotesApp.Infrastructure.Repositories
 
                 return response.Resource;
             }
-            catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
             {
                 return null;
             }
@@ -85,6 +100,9 @@ namespace NotesApp.Infrastructure.Repositories
         // =====================================================
         public async Task UpdateAsync(Notes note)
         {
+            if (string.IsNullOrWhiteSpace(note.UserId))
+                throw new InvalidOperationException("UserId is required (Cosmos partition key).");
+
             await _container.UpsertItemAsync(
                 note,
                 new PartitionKey(note.UserId)
@@ -112,8 +130,11 @@ namespace NotesApp.Infrastructure.Repositories
             string direction,
             string userId)
         {
+            if (!AllowedOrderBy.Contains(orderBy))
+                orderBy = "updatedAt";
+
+            var order = direction?.ToLower() == "asc" ? "ASC" : "DESC";
             var offset = (page - 1) * pageSize;
-            var order = direction.ToLower() == "asc" ? "ASC" : "DESC";
 
             var queryText = $@"
                 SELECT * FROM c
