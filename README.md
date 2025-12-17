@@ -1,13 +1,16 @@
 🧠 AI Notes App
-Azure-Ready Full-Stack Application (React + ASP.NET Core + Azure OpenAI)
 
-An AI-powered notes application built to demonstrate real-world Azure development practices, modern frontend architecture, and secure AI integration using Azure OpenAI (Microsoft Azure AI / Foundry).
+Azure-Ready Full-Stack Application (React + ASP.NET Core + Azure OpenAI + Cosmos DB)
 
-This project is intentionally designed as a portfolio showcase for Azure Developer & Full-Stack Engineer roles.
+An AI-powered notes application built to demonstrate real-world Azure development practices, modern frontend architecture, and secure AI integration using Azure OpenAI.
+
+This project is intentionally designed as a portfolio-grade showcase for Azure Developer and Full-Stack Engineer roles.
 
 🌟 Highlights
 
 ✅ Azure OpenAI (GPT-4o-mini) integration
+
+✅ Azure Cosmos DB (Core SQL API) for cloud persistence
 
 ✅ CI/CD implemented using GitHub → Azure
 
@@ -40,21 +43,36 @@ Responsive, card-based layout
 
 Powered by Azure OpenAI (GPT-4o-mini deployment)
 
+Generate full notes from a title
+
 Summarize notes
 
 Rewrite content
 
-Improve writing
+Improve writing quality
 
-Generate tags
-
-Generate full notes from a title
+Generate tags automatically
 
 AI-generated content badge
 
 Clear AI disclaimer for responsible usage
 
-Azure OpenAI is accessed securely via backend APIs — no AI keys are exposed in the frontend
+🔐 Azure OpenAI is accessed securely via backend APIs
+➡️ No AI keys are exposed in the frontend.
+
+🗄️ Data Storage (Azure Cosmos DB)
+
+Azure Cosmos DB (Core SQL API)
+
+Cloud-native NoSQL database
+
+Partitioned by userId
+
+Fully deployed and running in Azure
+
+Repository pattern for clean data access
+
+Environment-based configuration via Azure App Settings
 
 📄 Export
 
@@ -70,7 +88,7 @@ Directly from note cards
 
 Dark / Light mode toggle (global)
 
-Modal-based editor
+Modal-based note editor
 
 Accessible contrast in dark mode
 
@@ -98,7 +116,7 @@ Esc	Close modal
 
 ✅ Azure App Settings compatible
 
-✅ Backend-only AI key usage
+✅ Backend-only AI & database key usage
 
 ✅ Production-safe architecture
 
@@ -121,30 +139,38 @@ ASP.NET Core Web API
 
 Azure OpenAI (GPT-4o-mini)
 
+Azure Cosmos DB (Core SQL API)
+
 RESTful API design
 
 Cloud & DevOps
 
-Azure App Service
+Azure App Service (Backend)
+
+Azure Static Web Apps (Frontend)
 
 Azure OpenAI (Microsoft Azure AI / Foundry)
 
+Azure Cosmos DB
+
 CI/CD via GitHub Actions
 
-Environment variables & App Settings
-
-GitHub
+Environment variables & Azure App Settings
 
 📁 Project Structure
 NoteApp/
 ├─ Backend/
-│  └─ NotesApp.Api/
-│     ├─ Controllers/
-│     ├─ Services/
-│     ├─ Models/
-│     ├─ appsettings.json
-│     ├─ appsettings.Development.json (ignored)
-│     └─ Program.cs
+│  ├─ NotesApp.Api/
+│  │  ├─ Controllers/
+│  │  ├─ Services/
+│  │  ├─ Repositories/
+│  │  ├─ Program.cs
+│  │  ├─ appsettings.json
+│  │  └─ appsettings.Development.json (ignored)
+│  │
+│  ├─ NotesApp.Application/
+│  ├─ NotesApp.Domain/
+│  └─ NotesApp.Infrastructure/
 │
 ├─ Frontend/
 │  └─ notesapp-ui/
@@ -169,6 +195,13 @@ Important: Secrets are never committed to source control.
 Required Azure OpenAI Environment Variables (Backend)
 AzureOpenAI__ApiKey
 AzureOpenAI__Endpoint
+AzureOpenAI__DeploymentName
+
+Required Cosmos DB Environment Variables (Backend)
+CosmosDb__Endpoint
+CosmosDb__Key
+CosmosDb__DatabaseName
+CosmosDb__ContainerName
 
 Local Development Configuration
 
@@ -182,13 +215,20 @@ Example:
 {
   "AzureOpenAI": {
     "ApiKey": "YOUR_AZURE_OPENAI_KEY",
-    "Endpoint": "https://your-resource-name.openai.azure.com/"
+    "Endpoint": "https://your-resource.openai.azure.com/",
+    "DeploymentName": "gpt-4o-mini"
+  },
+  "CosmosDb": {
+    "Endpoint": "https://your-cosmos-account.documents.azure.com/",
+    "Key": "YOUR_COSMOS_KEY",
+    "DatabaseName": "NotesDb",
+    "ContainerName": "Notes"
   }
 }
 
 
-✔️ This file is ignored via .gitignore
-✔️ GitHub secret scanning will block accidental leaks
+✔️ File is ignored via .gitignore
+✔️ GitHub secret scanning blocks accidental leaks
 
 ▶️ Running the Project Locally
 Backend (ASP.NET Core API)
@@ -222,11 +262,13 @@ Frontend: Azure Static Web Apps
 
 Backend: Azure App Service
 
+Database: Azure Cosmos DB
+
 AI: Azure OpenAI (GPT-4o-mini)
 
 Secrets: Azure App Settings
 
-CI/CD: GitHub → Azure (already implemented)
+CI/CD: GitHub → Azure (implemented)
 
 ⚠️ Disclaimer
 
@@ -238,9 +280,11 @@ This project demonstrates:
 
 Real Azure OpenAI integration
 
+Cloud-native data storage with Cosmos DB
+
 Secure secret management
 
-Clean API design
+Clean API & repository design
 
 Modern React architecture
 
@@ -248,27 +292,29 @@ UX decisions for AI-powered features
 
 CI/CD pipelines with GitHub & Azure
 
-Cloud-ready, production-oriented thinking
-
 Designed to reflect real Azure developer responsibilities, not just a UI demo.
 
 🛣️ Future Enhancements
 
-Authentication (Azure Entra ID)
+Authentication & authorization (Azure Entra ID)
 
-Role-based access
+Multi-user support with per-user partitions
 
-Tags & advanced filtering
+Advanced tagging & filtering
 
-Audit logs
+Full-text search (Azure Cognitive Search)
 
-Azure SQL / Cosmos DB
+Audit logs & activity history
 
-Application Insights dashboards
+Application Insights dashboards & alerts
+
+Rate limiting & API throttling
+
+Offline-first support
 
 👩‍💻 Author
 
-Asmak
+Asma Hafeez Khan
 Azure Developer | Full-Stack Engineer
 
 ⭐ Support
