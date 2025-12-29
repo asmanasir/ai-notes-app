@@ -7,36 +7,57 @@ using NotesApp.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Logging
+//
+// ---------------- LOGGING ----------------
+//
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
-// CORS
+//
+// ---------------- CORS ----------------
+// IMPORTANT:
+// - localhost for dev
+// - Azure Static Web App domain for prod
+//
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
         policy
-            .WithOrigins("http://localhost:5173")
+            .WithOrigins(
+                "http://localhost:5173",
+                "https://orange-rock-0ad77e71e.3.azurestaticapps.net"
+            )
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
 });
 
-// API
+//
+// ---------------- API ----------------
+//
 builder.Services.AddControllers();
 builder.Services.AddHealthChecks();
 builder.Services.AddApplicationInsightsTelemetry();
 
-// Swagger
+//
+// ---------------- SWAGGER ----------------
+//
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Application
+//
+// ---------------- APPLICATION LAYER ----------------
+//
 builder.Services.AddScoped<INotesService, NotesService>();
 
-// ✅ SQL SERVER ONLY
+//
+// ---------------- DATABASE (SQL SERVER ONLY) ----------------
+// Uses connection string from:
+// - User Secrets (local)
+// - Azure App Service configuration (prod)
+//
 builder.Services.AddDbContext<NotesDbContext>(options =>
 {
     options.UseSqlServer(
@@ -50,22 +71,31 @@ builder.Services.AddDbContext<NotesDbContext>(options =>
         });
 });
 
-
 builder.Services.AddScoped<INoteRepository, SqlNoteRepository>();
 
-// AI
+//
+// ---------------- AI SERVICES ----------------
+//
 builder.Services.AddScoped<IAiService, AiService>();
 
+//
+// ---------------- BUILD APP ----------------
+//
 var app = builder.Build();
 
-// ✅ Auto-migrate (SAFE)
+//
+// ---------------- AUTO-MIGRATION (SAFE) ----------------
+// Runs once on startup
+//
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<NotesDbContext>();
     db.Database.Migrate();
 }
 
-// Swagger
+//
+// ---------------- MIDDLEWARE ----------------
+//
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
