@@ -16,9 +16,9 @@ builder.Logging.AddDebug();
 
 //
 // ---------------- CORS ----------------
-// IMPORTANT:
-// - localhost for dev
-// - Azure Static Web App domain for prod
+// Allows:
+// - localhost (development)
+// - Azure Static Web App (production)
 //
 builder.Services.AddCors(options =>
 {
@@ -27,7 +27,7 @@ builder.Services.AddCors(options =>
         policy
             .WithOrigins(
                 "http://localhost:5173",
-                "https://orange-rock-0ad77e71e.3.azurestaticapps.net"
+                "https://orange-rock-0ad77e71e3.azurestaticapps.net"
             )
             .AllowAnyHeader()
             .AllowAnyMethod();
@@ -53,8 +53,8 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<INotesService, NotesService>();
 
 //
-// ---------------- DATABASE (SQL SERVER ONLY) ----------------
-// Uses connection string from:
+// ---------------- DATABASE (SQL SERVER) ----------------
+// Connection string comes from:
 // - User Secrets (local)
 // - Azure App Service configuration (prod)
 //
@@ -67,7 +67,8 @@ builder.Services.AddDbContext<NotesDbContext>(options =>
             sqlOptions.EnableRetryOnFailure(
                 maxRetryCount: 5,
                 maxRetryDelay: TimeSpan.FromSeconds(30),
-                errorNumbersToAdd: null);
+                errorNumbersToAdd: null
+            );
         });
 });
 
@@ -85,7 +86,7 @@ var app = builder.Build();
 
 //
 // ---------------- AUTO-MIGRATION (SAFE) ----------------
-// Runs once on startup
+// Applies pending EF Core migrations on startup
 //
 using (var scope = app.Services.CreateScope())
 {
