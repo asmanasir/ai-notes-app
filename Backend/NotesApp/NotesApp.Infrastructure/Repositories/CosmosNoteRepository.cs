@@ -2,11 +2,12 @@
 using Microsoft.Extensions.Configuration;
 using NotesApp.Application.Interfaces;
 using NotesApp.Domain.Entities;
+
 using System.Net;
 
 namespace NotesApp.Infrastructure.Repositories
 {
-    public class CosmosNoteRepository : ICosmosNoteRepository
+    public class CosmosNoteRepository : INoteRepository
     {
         private readonly Container _container;
 
@@ -40,7 +41,7 @@ namespace NotesApp.Infrastructure.Repositories
         // =====================================================
         // CREATE
         // =====================================================
-        public async Task AddAsync(Notes note)
+        public async Task CreateAsync(Notes note)
         {
             if (string.IsNullOrWhiteSpace(note.UserId))
                 throw new InvalidOperationException("UserId is required (Cosmos partition key).");

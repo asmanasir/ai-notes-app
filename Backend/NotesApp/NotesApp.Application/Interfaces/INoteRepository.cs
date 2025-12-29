@@ -6,7 +6,7 @@ namespace NotesApp.Application.Interfaces
     {
         Task<IEnumerable<Notes>> GetAllAsync(string userId);
         Task<Notes?> GetByIdAsync(string id, string userId);
-        Task AddAsync(Notes note);
+        Task CreateAsync(Notes note);
         Task UpdateAsync(Notes note);
         Task DeleteAsync(string id, string userId);
 
@@ -15,7 +15,6 @@ namespace NotesApp.Application.Interfaces
             int pageSize,
             string orderBy,
             string direction,
-            string userId
-        );
+            string userId);
     }
 }

@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Logging;
-using Microsoft.FeatureManagement;
 using NotesApp.Application.Interfaces;
 using NotesApp.Domain.Entities;
 
@@ -7,34 +6,15 @@ namespace NotesApp.Application.Services
 {
     public class NotesService : INotesService
     {
-        private readonly ISqlNoteRepository _cosmosRepo;
-        private readonly ISqlNoteRepository _sqlRepo;
-        private readonly IFeatureManager _featureManager;
+        private readonly INoteRepository _repo;
         private readonly ILogger<NotesService> _logger;
 
-
         public NotesService(
-            ISqlNoteRepository cosmosRepo,
-            ISqlNoteRepository sqlRepo,
-            IFeatureManager featureManager,
+            INoteRepository repo,
             ILogger<NotesService> logger)
         {
-            _cosmosRepo = cosmosRepo;
-            _sqlRepo = sqlRepo;
-            _featureManager = featureManager;
+            _repo = repo;
             _logger = logger;
-        }
-
-        // ✅ Notice: returns INoteRepository (common contract)
-        private async Task<INoteRepository> ResolveRepoAsync()
-        {
-            var isSql = await _featureManager.IsEnabledAsync("UseAzureSql");
-
-            _logger.LogInformation("UseAzureSql flag = {Flag}", isSql);
-
-            return isSql
-                ? _sqlRepo
-                : _cosmosRepo;
         }
 
         public async Task<(IEnumerable<Notes>, int)> GetPagedAsync(
@@ -44,33 +24,52 @@ namespace NotesApp.Application.Services
             string direction,
             string userId)
         {
-            _logger.LogInformation("Fetching notes for user {UserId}", userId);
-            var repo = await ResolveRepoAsync();
-            return await repo.GetPagedAsync(page, pageSize, orderBy, direction, userId);
+            _logger.LogInformation(
+                "Fetching paged notes for user {UserId} (Page={Page}, Size={Size})",
+                userId, page, pageSize);
+
+            return await _repo.GetPagedAsync(
+                page,
+                pageSize,
+                orderBy,
+                direction,
+                userId);
         }
 
         public async Task<Notes?> GetByIdAsync(string id, string userId)
         {
-            var repo = await ResolveRepoAsync();
-            return await repo.GetByIdAsync(id, userId);
+            _logger.LogInformation(
+                "Fetching note {NoteId} for user {UserId}",
+                id, userId);
+
+            return await _repo.GetByIdAsync(id, userId);
         }
 
         public async Task CreateAsync(Notes note)
         {
-            var repo = await ResolveRepoAsync();
-            await repo.AddAsync(note);
+            _logger.LogInformation(
+                "Creating note {NoteId} for user {UserId}",
+                note.Id, note.UserId);
+
+            await _repo.CreateAsync(note);
         }
 
         public async Task UpdateAsync(Notes note)
         {
-            var repo = await ResolveRepoAsync();
-            await repo.UpdateAsync(note);
+            _logger.LogInformation(
+                "Updating note {NoteId} for user {UserId}",
+                note.Id, note.UserId);
+
+            await _repo.UpdateAsync(note);
         }
 
         public async Task DeleteAsync(string id, string userId)
         {
-            var repo = await ResolveRepoAsync();
-            await repo.DeleteAsync(id, userId);
+            _logger.LogInformation(
+                "Deleting note {NoteId} for user {UserId}",
+                id, userId);
+
+            await _repo.DeleteAsync(id, userId);
         }
     }
 }

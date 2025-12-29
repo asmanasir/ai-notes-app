@@ -1,6 +1,4 @@
-using Microsoft.Azure.Cosmos;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.FeatureManagement;
 using NotesApp.Application.Interfaces;
 using NotesApp.Application.Services;
 using NotesApp.Infrastructure.Data;
@@ -9,48 +7,65 @@ using NotesApp.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ✅ LOGGING FIRST
+// Ensure SQLite folder exists
+var appDataPath = Path.Combine(builder.Environment.ContentRootPath, "App_Data");
+Directory.CreateDirectory(appDataPath);
+
+var dbPath = Path.Combine(appDataPath, "notes.db");
+
+// Logging
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
-// Azure App Configuration
-builder.Host.ConfigureAppConfiguration((context, config) =>
+// CORS
+builder.Services.AddCors(options =>
 {
-    var settings = config.Build();
-    var appConfigConnection = settings["AppConfig:ConnectionString"];
-
-    if (!string.IsNullOrEmpty(appConfigConnection))
+    options.AddPolicy("AllowFrontend", policy =>
     {
-        config.AddAzureAppConfiguration(options =>
-        {
-            options
-                .Connect(appConfigConnection)
-                .UseFeatureFlags()
-                .ConfigureRefresh(refresh =>
-                {
-                    refresh.Register("Sentinel", refreshAll: true)
-                           .SetCacheExpiration(TimeSpan.FromSeconds(30));
-                });
-        });
-    }
+        policy
+            .WithOrigins("http://localhost:5173")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
 });
 
-builder.Services.AddAzureAppConfiguration();
-builder.Services.AddFeatureManagement();
+// API
 builder.Services.AddControllers();
 builder.Services.AddHealthChecks();
 builder.Services.AddApplicationInsightsTelemetry();
 
+// ✅ Swagger
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
-// DB + repos here...
+// Application
+builder.Services.AddScoped<INotesService, NotesService>();
+
+// SQL
+builder.Services.AddDbContext<NotesDbContext>(options =>
+{
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("Default"));
+});
+
+builder.Services.AddScoped<INoteRepository, SqlNoteRepository>();
+
+// AI
+builder.Services.AddScoped<IAiService, AiService>();
 
 var app = builder.Build();
 
-// Middleware
-app.UseAzureAppConfiguration();
+// ✅ Swagger middleware
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseCors("AllowFrontend");
+
 app.MapHealthChecks("/health");
 app.MapControllers();
 
 app.Run();
-
