@@ -41,7 +41,7 @@ namespace NotesApp.Infrastructure.Repositories
         // =====================================================
         // CREATE
         // =====================================================
-        public async Task CreateAsync(Notes note)
+        public async Task CreateAsync(Note note)
         {
             if (string.IsNullOrWhiteSpace(note.UserId))
                 throw new InvalidOperationException("UserId is required (Cosmos partition key).");
@@ -58,14 +58,14 @@ namespace NotesApp.Infrastructure.Repositories
         // =====================================================
         // READ ALL (by user)
         // =====================================================
-        public async Task<IEnumerable<Notes>> GetAllAsync(string userId)
+        public async Task<IEnumerable<Note>> GetAllAsync(string userId)
         {
             var query = new QueryDefinition(
                 "SELECT * FROM c WHERE c.userId = @userId"
             ).WithParameter("@userId", userId);
 
-            var iterator = _container.GetItemQueryIterator<Notes>(query);
-            var results = new List<Notes>();
+            var iterator = _container.GetItemQueryIterator<Note>(query);
+            var results = new List<Note>();
 
             while (iterator.HasMoreResults)
             {
@@ -79,11 +79,11 @@ namespace NotesApp.Infrastructure.Repositories
         // =====================================================
         // READ BY ID
         // =====================================================
-        public async Task<Notes?> GetByIdAsync(string id, string userId)
+        public async Task<Note?> GetByIdAsync(string id, string userId)
         {
             try
             {
-                var response = await _container.ReadItemAsync<Notes>(
+                var response = await _container.ReadItemAsync<Note>(
                     id,
                     new PartitionKey(userId)
                 );
@@ -99,7 +99,7 @@ namespace NotesApp.Infrastructure.Repositories
         // =====================================================
         // UPDATE
         // =====================================================
-        public async Task UpdateAsync(Notes note)
+        public async Task UpdateAsync(Note note)
         {
             if (string.IsNullOrWhiteSpace(note.UserId))
                 throw new InvalidOperationException("UserId is required (Cosmos partition key).");
@@ -115,7 +115,7 @@ namespace NotesApp.Infrastructure.Repositories
         // =====================================================
         public async Task DeleteAsync(string id, string userId)
         {
-            await _container.DeleteItemAsync<Notes>(
+            await _container.DeleteItemAsync<Note>(
                 id,
                 new PartitionKey(userId)
             );
@@ -124,7 +124,7 @@ namespace NotesApp.Infrastructure.Repositories
         // =====================================================
         // PAGED QUERY
         // =====================================================
-        public async Task<(IEnumerable<Notes> Items, int TotalCount)> GetPagedAsync(
+        public async Task<(IEnumerable<Note> Items, int TotalCount)> GetPagedAsync(
             int page,
             int pageSize,
             string orderBy,
@@ -149,8 +149,8 @@ namespace NotesApp.Infrastructure.Repositories
                 .WithParameter("@offset", offset)
                 .WithParameter("@limit", pageSize);
 
-            var iterator = _container.GetItemQueryIterator<Notes>(query);
-            var items = new List<Notes>();
+            var iterator = _container.GetItemQueryIterator<Note>(query);
+            var items = new List<Note>();
 
             while (iterator.HasMoreResults)
             {

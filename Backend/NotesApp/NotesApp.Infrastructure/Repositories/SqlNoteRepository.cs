@@ -14,23 +14,23 @@ namespace NotesApp.Infrastructure.Repositories
             _db = db;
         }
 
-        public async Task<IEnumerable<Notes>> GetAllAsync(string userId)
+        public async Task<IEnumerable<Note>> GetAllAsync(string userId)
             => await _db.Notes
                 .Where(n => n.UserId == userId)
                 .ToListAsync();
 
-        public async Task<Notes?> GetByIdAsync(string id, string userId)
+        public async Task<Note?> GetByIdAsync(string id, string userId)
             => await _db.Notes
                 .FirstOrDefaultAsync(n => n.Id == id && n.UserId == userId);
 
         // ✅ FIXED: method name matches interface
-        public async Task CreateAsync(Notes note)
+        public async Task CreateAsync(Note note)
         {
             _db.Notes.Add(note);
             await _db.SaveChangesAsync();
         }
 
-        public async Task UpdateAsync(Notes note)
+        public async Task UpdateAsync(Note note)
         {
             _db.Notes.Update(note);
             await _db.SaveChangesAsync();
@@ -46,7 +46,7 @@ namespace NotesApp.Infrastructure.Repositories
             await _db.SaveChangesAsync();
         }
 
-        public async Task<(IEnumerable<Notes> Items, int TotalCount)> GetPagedAsync(
+        public async Task<(IEnumerable<Note> Items, int TotalCount)> GetPagedAsync(
             int page,
             int pageSize,
             string orderBy,

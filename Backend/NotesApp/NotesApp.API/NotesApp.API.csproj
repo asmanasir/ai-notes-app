@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -8,6 +8,7 @@
     <!-- REQUIRED FOR AZURE WINDOWS APP SERVICE -->
     <AspNetCoreHostingModel>InProcess</AspNetCoreHostingModel>
     <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
+    <UserSecretsId>00b4ef06-08f5-44b0-9cef-c4e4bc7bbaba</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

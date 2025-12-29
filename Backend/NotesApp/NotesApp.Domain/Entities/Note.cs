@@ -2,7 +2,7 @@
 
 namespace NotesApp.Domain.Entities
 {
-    public class Notes
+    public class Note
     {
         [JsonProperty("id")]
         public string Id { get; set; } = Guid.NewGuid().ToString();

@@ -72,7 +72,7 @@ namespace NotesApp.API.Controllers
         [HttpPost]
         public async Task<IActionResult> Create(CreateNoteDto dto)
         {
-            var note = new Notes
+            var note = new Note
             {
                 Id = Guid.NewGuid().ToString(),
                 Title = dto.Title,

@@ -10,18 +10,32 @@ namespace NotesApp.Infrastructure.Data
         {
         }
 
-        public DbSet<Notes> Notes { get; set; } = null!;
+        public DbSet<Note> Notes { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-            modelBuilder.Entity<Notes>(entity =>
+            modelBuilder.Entity<Note>(entity =>
             {
+                entity.ToTable("Notes"); // ✅ Explicit table name
+
                 entity.HasKey(n => n.Id);
-                entity.Property(n => n.Title).IsRequired();
-                entity.Property(n => n.Content).IsRequired();
-                entity.Property(n => n.UserId).IsRequired();
+
+                entity.Property(n => n.Title)
+                      .IsRequired()
+                      .HasMaxLength(200);
+
+                entity.Property(n => n.Content)
+                      .IsRequired();
+
+                entity.Property(n => n.UserId)
+                      .IsRequired();
+
+                entity.Property(n => n.Summary);
+
+                entity.Property(n => n.CreatedAt)
+                      .HasDefaultValueSql("GETUTCDATE()");
             });
         }
     }

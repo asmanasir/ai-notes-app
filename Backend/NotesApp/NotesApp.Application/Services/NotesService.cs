@@ -17,7 +17,7 @@ namespace NotesApp.Application.Services
             _logger = logger;
         }
 
-        public async Task<(IEnumerable<Notes>, int)> GetPagedAsync(
+        public async Task<(IEnumerable<Note>, int)> GetPagedAsync(
             int page,
             int pageSize,
             string orderBy,
@@ -36,7 +36,7 @@ namespace NotesApp.Application.Services
                 userId);
         }
 
-        public async Task<Notes?> GetByIdAsync(string id, string userId)
+        public async Task<Note?> GetByIdAsync(string id, string userId)
         {
             _logger.LogInformation(
                 "Fetching note {NoteId} for user {UserId}",
@@ -45,7 +45,7 @@ namespace NotesApp.Application.Services
             return await _repo.GetByIdAsync(id, userId);
         }
 
-        public async Task CreateAsync(Notes note)
+        public async Task CreateAsync(Note note)
         {
             _logger.LogInformation(
                 "Creating note {NoteId} for user {UserId}",
@@ -54,7 +54,7 @@ namespace NotesApp.Application.Services
             await _repo.CreateAsync(note);
         }
 
-        public async Task UpdateAsync(Notes note)
+        public async Task UpdateAsync(Note note)
         {
             _logger.LogInformation(
                 "Updating note {NoteId} for user {UserId}",

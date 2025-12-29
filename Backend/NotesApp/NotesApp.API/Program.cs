@@ -7,12 +7,6 @@ using NotesApp.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Ensure SQLite folder exists
-var appDataPath = Path.Combine(builder.Environment.ContentRootPath, "App_Data");
-Directory.CreateDirectory(appDataPath);
-
-var dbPath = Path.Combine(appDataPath, "notes.db");
-
 // Logging
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
@@ -35,19 +29,27 @@ builder.Services.AddControllers();
 builder.Services.AddHealthChecks();
 builder.Services.AddApplicationInsightsTelemetry();
 
-// ✅ Swagger
+// Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Application
 builder.Services.AddScoped<INotesService, NotesService>();
 
-// SQL
+// ✅ SQL SERVER ONLY
 builder.Services.AddDbContext<NotesDbContext>(options =>
 {
     options.UseSqlServer(
-        builder.Configuration.GetConnectionString("Default"));
+        builder.Configuration.GetConnectionString("Default"),
+        sqlOptions =>
+        {
+            sqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 5,
+                maxRetryDelay: TimeSpan.FromSeconds(30),
+                errorNumbersToAdd: null);
+        });
 });
+
 
 builder.Services.AddScoped<INoteRepository, SqlNoteRepository>();
 
@@ -56,7 +58,14 @@ builder.Services.AddScoped<IAiService, AiService>();
 
 var app = builder.Build();
 
-// ✅ Swagger middleware
+// ✅ Auto-migrate (SAFE)
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<NotesDbContext>();
+    db.Database.Migrate();
+}
+
+// Swagger
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
