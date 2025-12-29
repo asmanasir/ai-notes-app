@@ -17,8 +17,8 @@ builder.Logging.AddDebug();
 //
 // ---------------- CORS ----------------
 // IMPORTANT:
-// - Exact Static Web App domain
-// - No trailing slash
+// - Must match frontend EXACTLY
+// - Must be applied BEFORE controllers
 //
 builder.Services.AddCors(options =>
 {
@@ -30,7 +30,8 @@ builder.Services.AddCors(options =>
                 "https://orange-rock-0ad77e71e.3.azurestaticapps.net"
             )
             .AllowAnyHeader()
-            .AllowAnyMethod();
+            .AllowAnyMethod()
+            .AllowCredentials();
     });
 });
 
@@ -48,20 +49,6 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 //
-// ---------------- DATABASE ----------------
-// SQL Server ONLY (User Secrets locally, App Settings in Azure)
-//
-builder.Services.AddDbContext<NotesDbContext>(options =>
-{
-    options.UseSqlServer(
-        builder.Configuration.GetConnectionString("Default"),
-        sqlOptions =>
-        {
-            sqlOptions.EnableRetryOnFailure();
-        });
-});
-
-//
 // ---------------- APPLICATION ----------------
 //
 builder.Services.AddScoped<INotesService, NotesService>();
@@ -69,12 +56,28 @@ builder.Services.AddScoped<INoteRepository, SqlNoteRepository>();
 builder.Services.AddScoped<IAiService, AiService>();
 
 //
-// ---------------- BUILD ----------------
+// ---------------- DATABASE ----------------
 //
+builder.Services.AddDbContext<NotesDbContext>(options =>
+{
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("Default"),
+        sql =>
+        {
+            sql.EnableRetryOnFailure();
+        });
+});
+
 var app = builder.Build();
 
 //
-// ---------------- AUTO-MIGRATE ----------------
+// ---------------- CORS MUST BE FIRST ----------------
+// 🔴 THIS IS CRITICAL
+//
+app.UseCors("AllowFrontend");
+
+//
+// ---------------- AUTO MIGRATION ----------------
 //
 using (var scope = app.Services.CreateScope())
 {
@@ -83,7 +86,7 @@ using (var scope = app.Services.CreateScope())
 }
 
 //
-// ---------------- MIDDLEWARE ORDER (IMPORTANT) ----------------
+// ---------------- SWAGGER ----------------
 //
 if (app.Environment.IsDevelopment())
 {
@@ -91,10 +94,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
-
-app.UseCors("AllowFrontend"); // 🔥 MUST BE BEFORE MapControllers
-
+//
+// ---------------- ENDPOINTS ----------------
+//
 app.MapHealthChecks("/health");
 app.MapControllers();
 
