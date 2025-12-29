@@ -16,9 +16,9 @@ builder.Logging.AddDebug();
 
 //
 // ---------------- CORS ----------------
-// Allows:
-// - localhost (development)
-// - Azure Static Web App (production)
+// IMPORTANT:
+// - Exact Static Web App domain
+// - No trailing slash
 //
 builder.Services.AddCors(options =>
 {
@@ -27,7 +27,7 @@ builder.Services.AddCors(options =>
         policy
             .WithOrigins(
                 "http://localhost:5173",
-                "https://orange-rock-0ad77e71e3.azurestaticapps.net"
+                "https://orange-rock-0ad77e71e.3.azurestaticapps.net"
             )
             .AllowAnyHeader()
             .AllowAnyMethod();
@@ -48,15 +48,8 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 //
-// ---------------- APPLICATION LAYER ----------------
-//
-builder.Services.AddScoped<INotesService, NotesService>();
-
-//
-// ---------------- DATABASE (SQL SERVER) ----------------
-// Connection string comes from:
-// - User Secrets (local)
-// - Azure App Service configuration (prod)
+// ---------------- DATABASE ----------------
+// SQL Server ONLY (User Secrets locally, App Settings in Azure)
 //
 builder.Services.AddDbContext<NotesDbContext>(options =>
 {
@@ -64,29 +57,24 @@ builder.Services.AddDbContext<NotesDbContext>(options =>
         builder.Configuration.GetConnectionString("Default"),
         sqlOptions =>
         {
-            sqlOptions.EnableRetryOnFailure(
-                maxRetryCount: 5,
-                maxRetryDelay: TimeSpan.FromSeconds(30),
-                errorNumbersToAdd: null
-            );
+            sqlOptions.EnableRetryOnFailure();
         });
 });
 
+//
+// ---------------- APPLICATION ----------------
+//
+builder.Services.AddScoped<INotesService, NotesService>();
 builder.Services.AddScoped<INoteRepository, SqlNoteRepository>();
-
-//
-// ---------------- AI SERVICES ----------------
-//
 builder.Services.AddScoped<IAiService, AiService>();
 
 //
-// ---------------- BUILD APP ----------------
+// ---------------- BUILD ----------------
 //
 var app = builder.Build();
 
 //
-// ---------------- AUTO-MIGRATION (SAFE) ----------------
-// Applies pending EF Core migrations on startup
+// ---------------- AUTO-MIGRATE ----------------
 //
 using (var scope = app.Services.CreateScope())
 {
@@ -95,7 +83,7 @@ using (var scope = app.Services.CreateScope())
 }
 
 //
-// ---------------- MIDDLEWARE ----------------
+// ---------------- MIDDLEWARE ORDER (IMPORTANT) ----------------
 //
 if (app.Environment.IsDevelopment())
 {
@@ -103,7 +91,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseCors("AllowFrontend");
+app.UseHttpsRedirection();
+
+app.UseCors("AllowFrontend"); // 🔥 MUST BE BEFORE MapControllers
 
 app.MapHealthChecks("/health");
 app.MapControllers();
