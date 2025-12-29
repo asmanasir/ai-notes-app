@@ -1,63 +1,56 @@
 using Microsoft.Azure.Cosmos;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.FeatureManagement;
 using NotesApp.Application.Interfaces;
 using NotesApp.Application.Services;
+using NotesApp.Infrastructure.Data;
 using NotesApp.Infrastructure.Repositories;
 using NotesApp.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Controllers
-builder.Services.AddControllers();
+// ✅ LOGGING FIRST
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
 
-// Swagger
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-// CORS (Static Web App)
-builder.Services.AddCors(options =>
+// Azure App Configuration
+builder.Host.ConfigureAppConfiguration((context, config) =>
 {
-    options.AddPolicy("CorsPolicy", policy =>
+    var settings = config.Build();
+    var appConfigConnection = settings["AppConfig:ConnectionString"];
+
+    if (!string.IsNullOrEmpty(appConfigConnection))
     {
-        policy.AllowAnyOrigin()
-              .AllowAnyHeader()
-              .AllowAnyMethod();
-    });
+        config.AddAzureAppConfiguration(options =>
+        {
+            options
+                .Connect(appConfigConnection)
+                .UseFeatureFlags()
+                .ConfigureRefresh(refresh =>
+                {
+                    refresh.Register("Sentinel", refreshAll: true)
+                           .SetCacheExpiration(TimeSpan.FromSeconds(30));
+                });
+        });
+    }
 });
 
-// Cosmos DB
-builder.Services.AddSingleton(sp =>
-{
-    var config = sp.GetRequiredService<IConfiguration>();
+builder.Services.AddAzureAppConfiguration();
+builder.Services.AddFeatureManagement();
+builder.Services.AddControllers();
+builder.Services.AddHealthChecks();
+builder.Services.AddApplicationInsightsTelemetry();
 
-    var endpoint = config["CosmosDb:AccountEndpoint"];
-    var key = config["CosmosDb:AccountKey"];
 
-    if (string.IsNullOrEmpty(endpoint) || string.IsNullOrEmpty(key))
-        throw new InvalidOperationException("Cosmos DB config missing");
-
-    return new CosmosClient(endpoint, key);
-});
-
-// DI
-builder.Services.AddScoped<INoteRepository, CosmosNoteRepository>();
-builder.Services.AddScoped<IAiService, AiService>();
+// DB + repos here...
 
 var app = builder.Build();
 
-// ✅ Swagger (DEV ONLY)
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
-app.UseHttpsRedirection();
-
-// CORS
-app.UseCors("CorsPolicy");
-
-app.UseAuthorization();
-
+// Middleware
+app.UseAzureAppConfiguration();
+app.MapHealthChecks("/health");
 app.MapControllers();
 
 app.Run();
+

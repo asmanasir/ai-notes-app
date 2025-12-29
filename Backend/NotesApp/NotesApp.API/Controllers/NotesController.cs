@@ -10,12 +10,12 @@ namespace NotesApp.API.Controllers
     [Route("api/[controller]")]
     public class NotesController : ControllerBase
     {
-        private readonly INoteRepository _noteRepository;
+        private readonly INotesService _notesService;
         private const string UserId = "demo-user";
 
-        public NotesController(INoteRepository noteRepository)
+        public NotesController(INotesService notesService)
         {
-            _noteRepository = noteRepository;
+            _notesService = notesService;
         }
 
         // ===========================
@@ -29,7 +29,7 @@ namespace NotesApp.API.Controllers
             string direction = "desc")
         {
             var (items, totalCount) =
-                await _noteRepository.GetPagedAsync(
+                await _notesService.GetPagedAsync(
                     page,
                     pageSize,
                     orderBy,
@@ -60,19 +60,10 @@ namespace NotesApp.API.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(string id)
         {
-            var note = await _noteRepository.GetByIdAsync(id, UserId);
+            var note = await _notesService.GetByIdAsync(id, UserId);
             if (note == null) return NotFound();
 
-            return Ok(new NoteResponseDto
-            {
-                Id = note.Id,
-                Title = note.Title,
-                Content = note.Content,
-                Tags = note.Tags,
-                Summary = note.Summary,
-                CreatedAt = note.CreatedAt,
-                UpdatedAt = note.UpdatedAt
-            });
+            return Ok(note);
         }
 
         // ===========================
@@ -93,8 +84,7 @@ namespace NotesApp.API.Controllers
                 UserId = UserId
             };
 
-            await _noteRepository.AddAsync(note);
-
+            await _notesService.CreateAsync(note);
             return Ok(note);
         }
 
@@ -104,7 +94,7 @@ namespace NotesApp.API.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(string id, UpdateNoteDto dto)
         {
-            var existing = await _noteRepository.GetByIdAsync(id, UserId);
+            var existing = await _notesService.GetByIdAsync(id, UserId);
             if (existing == null) return NotFound();
 
             existing.Title = dto.Title;
@@ -113,7 +103,7 @@ namespace NotesApp.API.Controllers
             existing.Summary = dto.Summary;
             existing.UpdatedAt = DateTime.UtcNow;
 
-            await _noteRepository.UpdateAsync(existing);
+            await _notesService.UpdateAsync(existing);
             return Ok(existing);
         }
 
@@ -123,7 +113,7 @@ namespace NotesApp.API.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(string id)
         {
-            await _noteRepository.DeleteAsync(id, UserId);
+            await _notesService.DeleteAsync(id, UserId);
             return NoContent();
         }
     }

@@ -10,4 +10,8 @@
     <ProjectReference Include="..\NotesApp.Domain\NotesApp.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Microsoft.FeatureManagement" Version="4.4.0" />
+  </ItemGroup>
+
 </Project>

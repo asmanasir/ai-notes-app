@@ -6,7 +6,7 @@ using System.Net;
 
 namespace NotesApp.Infrastructure.Repositories
 {
-    public class CosmosNoteRepository : INoteRepository
+    public class CosmosNoteRepository : ICosmosNoteRepository
     {
         private readonly Container _container;
 
