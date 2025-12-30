@@ -7,11 +7,16 @@ using NotesApp.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ---------------- LOGGING ----------------
+//
+// ---------- LOGGING ----------
+//
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
+builder.Logging.AddDebug();
 
-// ---------------- CORS ----------------
+//
+// ---------- CORS (ONCE ONLY) ----------
+//
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
@@ -26,43 +31,70 @@ builder.Services.AddCors(options =>
     });
 });
 
-// ---------------- SERVICES ----------------
+//
+// ---------- API ----------
+//
 builder.Services.AddControllers();
 builder.Services.AddHealthChecks();
 builder.Services.AddApplicationInsightsTelemetry();
+
+//
+// ---------- SWAGGER ----------
+//
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddScoped<INotesService, NotesService>();
-builder.Services.AddScoped<INoteRepository, SqlNoteRepository>();
-builder.Services.AddScoped<IAiService, AiService>();
-
+//
+// ---------- DATABASE ----------
+//
 builder.Services.AddDbContext<NotesDbContext>(options =>
 {
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("Default"),
-        sql => sql.EnableRetryOnFailure());
+        sql =>
+        {
+            sql.EnableRetryOnFailure(
+                maxRetryCount: 5,
+                maxRetryDelay: TimeSpan.FromSeconds(30),
+                errorNumbersToAdd: null);
+        });
 });
+
+//
+// ---------- APPLICATION ----------
+//
+builder.Services.AddScoped<INotesService, NotesService>();
+builder.Services.AddScoped<INoteRepository, SqlNoteRepository>();
+builder.Services.AddScoped<IAiService, AiService>();
 
 var app = builder.Build();
 
-// 🔴 ORDER MATTERS 🔴
-app.UseRouting();
-app.UseCors("AllowFrontend");
-app.UseAuthorization();
-
-// Auto-migrate
+//
+// ---------- SAFE MIGRATION ----------
+//
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<NotesDbContext>();
-    db.Database.Migrate();
+    try
+    {
+        var db = scope.ServiceProvider.GetRequiredService<NotesDbContext>();
+        db.Database.Migrate();
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogError(ex, "Database migration failed");
+    }
 }
 
+//
+// ---------- MIDDLEWARE ----------
+//
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseCors("AllowFrontend");
 
 app.MapHealthChecks("/health");
 app.MapControllers();
