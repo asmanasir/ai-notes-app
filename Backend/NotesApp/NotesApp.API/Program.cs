@@ -16,6 +16,7 @@ builder.Logging.AddDebug();
 
 //
 // ---------- CORS (ONCE ONLY) ----------
+// Local + Azure Static Web App
 //
 builder.Services.AddCors(options =>
 {
@@ -45,7 +46,10 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 //
-// ---------- DATABASE ----------
+// ---------- DATABASE (SQL SERVER) ----------
+// Uses:
+// - User Secrets (local)
+// - Azure App Service → Connection Strings (prod)
 //
 builder.Services.AddDbContext<NotesDbContext>(options =>
 {
@@ -61,16 +65,20 @@ builder.Services.AddDbContext<NotesDbContext>(options =>
 });
 
 //
-// ---------- APPLICATION ----------
+// ---------- APPLICATION LAYER ----------
 //
 builder.Services.AddScoped<INotesService, NotesService>();
 builder.Services.AddScoped<INoteRepository, SqlNoteRepository>();
 builder.Services.AddScoped<IAiService, AiService>();
 
+//
+// ---------- BUILD ----------
+//
 var app = builder.Build();
 
 //
-// ---------- SAFE MIGRATION ----------
+// ---------- SAFE DATABASE MIGRATION ----------
+// Does NOT crash app if DB is temporarily unavailable
 //
 using (var scope = app.Services.CreateScope())
 {
@@ -81,12 +89,12 @@ using (var scope = app.Services.CreateScope())
     }
     catch (Exception ex)
     {
-        app.Logger.LogError(ex, "Database migration failed");
+        app.Logger.LogError(ex, "❌ Database migration failed");
     }
 }
 
 //
-// ---------- MIDDLEWARE ----------
+// ---------- MIDDLEWARE (ORDER MATTERS) ----------
 //
 if (app.Environment.IsDevelopment())
 {
@@ -94,7 +102,11 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// 🔴 CORS MUST BE BEFORE MapControllers
 app.UseCors("AllowFrontend");
+
+app.UseHttpsRedirection();
+app.UseAuthorization();
 
 app.MapHealthChecks("/health");
 app.MapControllers();
