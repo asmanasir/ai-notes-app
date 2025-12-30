@@ -1,6 +1,7 @@
 🧠 AI Notes App
 
-Azure-Ready Full-Stack Application (React + ASP.NET Core + Azure OpenAI + Cosmos DB)
+Azure-Ready Full-Stack Application
+(React + ASP.NET Core + Azure OpenAI + Azure SQL Database)
 
 An AI-powered notes application built to demonstrate real-world Azure development practices, modern frontend architecture, and secure AI integration using Azure OpenAI.
 
@@ -9,17 +10,12 @@ This project is intentionally designed as a portfolio-grade showcase for Azure D
 🌟 Highlights
 
 ✅ Azure OpenAI (GPT-4o-mini) integration
-
-✅ Azure Cosmos DB (Core SQL API) for cloud persistence
-
+✅ Azure SQL Database for relational cloud persistence
+✅ Entity Framework Core with auto-migrations
 ✅ CI/CD implemented using GitHub → Azure
-
 ✅ Secure secrets management (no keys in Git)
-
 ✅ Cloud-ready, production-grade architecture
-
 ✅ Modern, accessible UI with Dark / Light mode
-
 ✅ Clean, maintainable, TypeScript-safe codebase
 
 🚀 Features
@@ -41,7 +37,7 @@ Responsive, card-based layout
 
 🤖 AI Assistance (Azure OpenAI)
 
-Powered by Azure OpenAI (GPT-4o-mini deployment)
+Powered by Azure OpenAI (GPT-4o-mini)
 
 Generate full notes from a title
 
@@ -60,19 +56,21 @@ Clear AI disclaimer for responsible usage
 🔐 Azure OpenAI is accessed securely via backend APIs
 ➡️ No AI keys are exposed in the frontend.
 
-🗄️ Data Storage (Azure Cosmos DB)
+🗄️ Data Storage (Azure SQL Database)
 
-Azure Cosmos DB (Core SQL API)
+Azure SQL Database (SQL Server)
 
-Cloud-native NoSQL database
+Relational schema using Entity Framework Core
 
-Partitioned by userId
+Code-first migrations
 
-Fully deployed and running in Azure
+Retry-enabled SQL connections
 
 Repository pattern for clean data access
 
 Environment-based configuration via Azure App Settings
+
+Fully deployed and running in Azure
 
 📄 Export
 
@@ -109,15 +107,10 @@ Esc	Close modal
 🔐 Security & Best Practices
 
 ❌ No secrets committed to Git
-
 ✅ Environment-based configuration
-
 ✅ GitHub secret scanning compatible
-
 ✅ Azure App Settings compatible
-
 ✅ Backend-only AI & database key usage
-
 ✅ Production-safe architecture
 
 🏗️ Tech Stack
@@ -137,9 +130,11 @@ Backend
 
 ASP.NET Core Web API
 
-Azure OpenAI (GPT-4o-mini)
+Entity Framework Core
 
-Azure Cosmos DB (Core SQL API)
+Azure SQL Database
+
+Azure OpenAI (GPT-4o-mini)
 
 RESTful API design
 
@@ -149,16 +144,16 @@ Azure App Service (Backend)
 
 Azure Static Web Apps (Frontend)
 
-Azure OpenAI (Microsoft Azure AI / Foundry)
+Azure SQL Database
 
-Azure Cosmos DB
+Azure OpenAI (Microsoft Azure AI / Foundry)
 
 CI/CD via GitHub Actions
 
 Environment variables & Azure App Settings
 
 📁 Project Structure
-NoteApp/
+NotesApp/
 ├─ Backend/
 │  ├─ NotesApp.Api/
 │  │  ├─ Controllers/
@@ -197,11 +192,8 @@ AzureOpenAI__ApiKey
 AzureOpenAI__Endpoint
 AzureOpenAI__DeploymentName
 
-Required Cosmos DB Environment Variables (Backend)
-CosmosDb__Endpoint
-CosmosDb__Key
-CosmosDb__DatabaseName
-CosmosDb__ContainerName
+Required Azure SQL Environment Variables (Backend)
+ConnectionStrings__Default
 
 Local Development Configuration
 
@@ -213,16 +205,13 @@ Backend/NotesApp.Api/appsettings.Development.json
 Example:
 
 {
+  "ConnectionStrings": {
+    "Default": "Server=localhost;Database=NotesAppDb;User Id=sa;Password=YourStrongPassword!;TrustServerCertificate=True;"
+  },
   "AzureOpenAI": {
     "ApiKey": "YOUR_AZURE_OPENAI_KEY",
     "Endpoint": "https://your-resource.openai.azure.com/",
     "DeploymentName": "gpt-4o-mini"
-  },
-  "CosmosDb": {
-    "Endpoint": "https://your-cosmos-account.documents.azure.com/",
-    "Key": "YOUR_COSMOS_KEY",
-    "DatabaseName": "NotesDb",
-    "ContainerName": "Notes"
   }
 }
 
@@ -262,13 +251,13 @@ Frontend: Azure Static Web Apps
 
 Backend: Azure App Service
 
-Database: Azure Cosmos DB
+Database: Azure SQL Database
 
 AI: Azure OpenAI (GPT-4o-mini)
 
 Secrets: Azure App Settings
 
-CI/CD: GitHub → Azure (implemented)
+CI/CD: GitHub → Azure
 
 ⚠️ Disclaimer
 
@@ -280,11 +269,13 @@ This project demonstrates:
 
 Real Azure OpenAI integration
 
-Cloud-native data storage with Cosmos DB
+Relational cloud data modeling with Azure SQL
 
 Secure secret management
 
 Clean API & repository design
+
+Entity Framework Core best practices
 
 Modern React architecture
 
@@ -298,11 +289,11 @@ Designed to reflect real Azure developer responsibilities, not just a UI demo.
 
 Authentication & authorization (Azure Entra ID)
 
-Multi-user support with per-user partitions
+Multi-user support
 
 Advanced tagging & filtering
 
-Full-text search (Azure Cognitive Search)
+Full-text search
 
 Audit logs & activity history
 
@@ -311,6 +302,8 @@ Application Insights dashboards & alerts
 Rate limiting & API throttling
 
 Offline-first support
+
+Docker & containerized deployment
 
 👩‍💻 Author
 
