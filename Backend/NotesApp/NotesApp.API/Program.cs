@@ -8,7 +8,7 @@ using NotesApp.Infrastructure.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 //
-// ---------- CORS (ONCE ONLY) ----------
+// ---------- CORS ----------
 // Local + Azure Static Web App
 //
 builder.Services.AddCors(options =>
@@ -30,6 +30,11 @@ builder.Services.AddCors(options =>
 //
 builder.Services.AddControllers();
 builder.Services.AddHealthChecks();
+
+//
+// ---------- APPLICATION INSIGHTS ----------
+// Disable sampling temporarily (debug / learning)
+//
 builder.Services.AddApplicationInsightsTelemetry(options =>
 {
     options.EnableAdaptiveSampling = false;
@@ -98,11 +103,16 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// 🔴 CORS MUST BE BEFORE MapControllers
-app.UseCors("AllowFrontend");
 app.UseHttpsRedirection();
+
+// ✅ CORS MUST BE BEFORE AUTH & CONTROLLERS
+app.UseCors("AllowFrontend");
+
 app.UseAuthorization();
 
+//
+// ---------- CORRELATION / TRACE ID ----------
+//
 app.Use(async (context, next) =>
 {
     var traceId = context.TraceIdentifier;
@@ -121,4 +131,5 @@ app.Use(async (context, next) =>
 
 app.MapHealthChecks("/health");
 app.MapControllers();
+
 app.Run();
