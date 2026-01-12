@@ -183,5 +183,16 @@ namespace NotesApp.API.Controllers
                 throw;
             }
         }
+
+        [HttpGet("test-log")]
+        public IActionResult TestLog()
+        {
+            _logger.LogInformation(
+                "🚀 Test log from NotesController at {UtcTime}",
+                DateTime.UtcNow);
+
+            return Ok("Test log sent");
+        }
+
     }
 }
