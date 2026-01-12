@@ -5,6 +5,8 @@ using NotesApp.Application.Services;
 using NotesApp.Infrastructure.Data;
 using NotesApp.Infrastructure.Repositories;
 using NotesApp.Infrastructure.Services;
+using Microsoft.ApplicationInsights.Extensibility;
+using Microsoft.ApplicationInsights;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -81,6 +83,7 @@ builder.Services.AddDbContext<NotesDbContext>(options =>
 builder.Services.AddScoped<INotesService, NotesService>();
 builder.Services.AddScoped<INoteRepository, SqlNoteRepository>();
 builder.Services.AddScoped<IAiService, AiService>();
+builder.Services.AddSingleton<TelemetryClient>();
 
 //
 // ---------- BUILD ----------

@@ -1,14 +1,13 @@
 ﻿using Microsoft.Extensions.Configuration;
+using NotesApp.Application.Services;
+using Microsoft.Extensions.Logging;
 using NotesApp.Application.DTOs.AI;
 using NotesApp.Application.Prompts;
-using NotesApp.Application.Services;
-using System;
-using System.Linq;
-using System.Net.Http;
-using System.Net.Http.Headers;
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
+using System.Linq;
+using Microsoft.ApplicationInsights;
 
 namespace NotesApp.Infrastructure.Services
 {
@@ -16,24 +15,32 @@ namespace NotesApp.Infrastructure.Services
     {
         private readonly HttpClient _http;
         private readonly string _model;
-        private readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true
-        };
+        private readonly ILogger<AiService> _logger;
+        private readonly TelemetryClient _telemetry;
 
-        public AiService(IConfiguration config)
+        private static readonly JsonSerializerOptions JsonOptions =
+            new() { PropertyNameCaseInsensitive = true };
+
+        public AiService(
+            IConfiguration config,
+            ILogger<AiService> logger,
+            TelemetryClient telemetry)
         {
-            // Grab key (Azure or OpenAI)
-            string apiKey = config["OpenAI:ApiKey"] ?? config["AzureOpenAI:ApiKey"]
+            _logger = logger;
+            _telemetry = telemetry;
+
+            string apiKey =
+                config["AzureOpenAI:ApiKey"]
+                ?? config["OpenAI:ApiKey"]
                 ?? throw new InvalidOperationException("AI API key not configured.");
 
-            // Prefer Azure model if provided
-            _model = config["AzureOpenAI:Deployment"]
-                  ?? config["OpenAI:Model"]
-                  ?? "gpt-4o-mini";
+            _model =
+                config["AzureOpenAI:Deployment"]
+                ?? config["OpenAI:Model"]
+                ?? "gpt-4o-mini";
 
-            // Set correct Azure endpoint
-            string endpoint = config["AzureOpenAI:Endpoint"]
+            string endpoint =
+                config["AzureOpenAI:Endpoint"]
                 ?? "https://api.openai.com/v1/";
 
             _http = new HttpClient
@@ -41,203 +48,167 @@ namespace NotesApp.Infrastructure.Services
                 BaseAddress = new Uri(endpoint)
             };
 
-            // Azure uses api-key header, not Bearer tokens
             _http.DefaultRequestHeaders.Add("api-key", apiKey);
+            _logger.LogInformation("TelemetryClient injected: {Injected}", _telemetry != null);
+
         }
 
-        // ------------------------------
-        // 🔥 Core reusable method
-        // ------------------------------
-        private async Task<AIResponse> RunChatAsync(string systemPrompt, string userPrompt, int maxTokens = 300)
+        // ===========================
+        // Core AI Execution
+        // ===========================
+        private async Task<AIResponse> RunChatAsync(
+            string systemPrompt,
+            string userPrompt,
+            int maxTokens = 300)
         {
-            var payload = new
+            var stopwatch = Stopwatch.StartNew();
+
+            _logger.LogInformation(
+                "AI request started. Model={Model}, MaxTokens={MaxTokens}",
+                _model, maxTokens);
+
+            try
             {
-                model = _model,
-                messages = new[]
+                var payload = new
                 {
-                    new { role = "system", content = systemPrompt },
-                    new { role = "user", content = userPrompt }
-                },
-                max_tokens = maxTokens,
-                temperature = 0.5
-            };
+                    model = _model,
+                    messages = new[]
+                    {
+                        new { role = "system", content = systemPrompt },
+                        new { role = "user", content = userPrompt }
+                    },
+                    max_tokens = maxTokens,
+                    temperature = 0.5
+                };
 
-            var json = JsonSerializer.Serialize(payload);
-            using var content = new StringContent(json, Encoding.UTF8, "application/json");
+                var json = JsonSerializer.Serialize(payload);
+                using var content =
+                    new StringContent(json, Encoding.UTF8, "application/json");
 
-            using var response = await _http.PostAsync(
-                "openai/deployments/" + _model + "/chat/completions?api-version=2024-08-01-preview",
-                content
-            );
+                using var response = await _http.PostAsync(
+                    $"openai/deployments/{_model}/chat/completions?api-version=2024-08-01-preview",
+                    content);
 
-            if (!response.IsSuccessStatusCode)
-            {
-                string errorBody = await response.Content.ReadAsStringAsync();
-                throw new Exception($"AI Error {response.StatusCode}: {errorBody}");
+                if (!response.IsSuccessStatusCode)
+                {
+                    string error = await response.Content.ReadAsStringAsync();
+                    _telemetry.GetMetric("AI.Requests.Failed").TrackValue(1);
+
+                    _logger.LogError(
+                        "AI request failed. Status={Status}. Body={Body}",
+                        response.StatusCode, error);
+
+                    throw new Exception(error);
+                }
+
+                using var stream = await response.Content.ReadAsStreamAsync();
+                using var doc = await JsonDocument.ParseAsync(stream);
+
+                var choice = doc.RootElement
+                    .GetProperty("choices")[0]
+                    .GetProperty("message")
+                    .GetProperty("content")
+                    .GetString() ?? string.Empty;
+
+                var usage = doc.RootElement.GetProperty("usage");
+
+                int promptTokens = usage.GetProperty("prompt_tokens").GetInt32();
+                int completionTokens = usage.GetProperty("completion_tokens").GetInt32();
+
+                _telemetry.GetMetric("AI.Requests.Total").TrackValue(1);
+                _telemetry.GetMetric("AI.Tokens.Prompt").TrackValue(promptTokens);
+                _telemetry.GetMetric("AI.Tokens.Completion").TrackValue(completionTokens);
+
+                stopwatch.Stop();
+                _telemetry.GetMetric("AI.LatencyMs").TrackValue(stopwatch.ElapsedMilliseconds);
+
+                _logger.LogInformation(
+                    "AI request completed in {Duration} ms",
+                    stopwatch.ElapsedMilliseconds);
+
+                return new AIResponse
+                {
+                    Output = choice,
+                    Model = _model,
+                    PromptTokens = promptTokens,
+                    CompletionTokens = completionTokens
+                };
             }
-
-            using var body = await response.Content.ReadAsStreamAsync();
-            using var doc = await JsonDocument.ParseAsync(body);
-
-            string resultText =
-                doc.RootElement
-                .GetProperty("choices")[0]
-                .GetProperty("message")
-                .GetProperty("content")
-                .GetString()
-                ?? string.Empty;
-
-            var usage = doc.RootElement.GetProperty("usage");
-
-            return new AIResponse
+            catch
             {
-                Output = resultText,
-                Model = _model,
-                PromptTokens = usage.GetProperty("prompt_tokens").GetInt32(),
-                CompletionTokens = usage.GetProperty("completion_tokens").GetInt32()
-            };
+                stopwatch.Stop();
+                throw;
+            }
         }
 
-        // ------------------------------
-        // Public methods (using DTOs)
-        // ------------------------------
-
+        // ===========================
+        // Public API
+        // ===========================
         public Task<AIResponse> SummarizeAsync(SummarizeRequest req)
         {
-            string styledPrompt = $"{req.Text}\n\nTone: {req.Tone}\nMaxLength: {req.MaxLength}";
-            return RunChatAsync(PromptLibrary.Summarize.SystemPrompt, styledPrompt, req.MaxLength);
+            string input =
+                $"{req.Text}\n\nTone: {req.Tone}\nMaxLength: {req.MaxLength}";
+
+            return RunChatAsync(
+                PromptLibrary.Summarize.SystemPrompt,
+                input,
+                req.MaxLength);
         }
 
         public Task<AIResponse> RewriteAsync(RewriteRequest req)
         {
             string input = $"{req.Text}\nRewrite style: {req.Style}";
-            return RunChatAsync(PromptLibrary.Rewrite.SystemPrompt, input);
+
+            return RunChatAsync(
+                PromptLibrary.Rewrite.SystemPrompt,
+                input);
         }
 
         public async Task<AIResponse> SuggestTagsAsync(SuggestTagsRequest req)
         {
-            // Run the AI model and get a structured result
             AIResponse ai = await RunChatAsync(
                 PromptLibrary.Tagging.SystemPrompt,
                 req.Text);
 
-            string raw = ai.Output; // ← FIX: AIResponse.Output instead of string
-
-            // Try to parse proper JSON
             try
             {
-                var doc = JsonDocument.Parse(raw);
-                var tags = doc.RootElement.GetProperty("tags")
-                                          .EnumerateArray()
-                                          .Select(x => x.GetString() ?? "")
-                                          .Where(x => !string.IsNullOrWhiteSpace(x))
-                                          .ToList();
+                var doc = JsonDocument.Parse(ai.Output);
+                var tags = doc.RootElement
+                    .GetProperty("tags")
+                    .EnumerateArray()
+                    .Select(x => x.GetString())
+                    .Where(x => !string.IsNullOrWhiteSpace(x));
 
-                return new AIResponse
-                {
-                    Output = string.Join(", ", tags),
-                    Model = _model,
-                    CompletionTokens = ai.CompletionTokens,
-                    PromptTokens = ai.PromptTokens
-                };
+                ai.Output = string.Join(", ", tags);
             }
             catch
             {
-                // Fallback: try to clean text manually
-                var cleaned = raw
+                ai.Output = ai.Output
                     .Replace("\n", " ")
                     .Replace("*", "")
-                    .Replace("Tags:", "")
-                    .Replace("tags:", "");
-
-                var tags = cleaned.Split(',', StringSplitOptions.RemoveEmptyEntries)
-                                  .Select(t => t.Trim().ToLower())
-                                  .ToList();
-
-                return new AIResponse
-                {
-                    Output = string.Join(", ", tags),
-                    Model = _model,
-                    CompletionTokens = ai.CompletionTokens,
-                    PromptTokens = ai.PromptTokens
-                };
+                    .Replace("Tags:", "", StringComparison.OrdinalIgnoreCase);
             }
+
+            return ai;
         }
-
-
 
         public Task<AIResponse> GenerateNoteAsync(GenerateNoteRequest req)
         {
-            string input = $"Topic: {req.Topic}\nFormat: {req.Format}";
-            return RunChatAsync(PromptLibrary.NoteGeneration.SystemPrompt, input, 250);
+            string input =
+                $"Topic: {req.Topic}\nFormat: {req.Format}";
+
+            return RunChatAsync(
+                PromptLibrary.NoteGeneration.SystemPrompt,
+                input,
+                250);
         }
 
+        // Simple streaming implementation to satisfy IAiService contract.
+        // Currently yields the full response as a single chunk. Replace with real streaming if the API supports it.
         public async IAsyncEnumerable<string> StreamChatAsync(string systemPrompt, string userPrompt)
         {
-            var payload = new
-            {
-                model = _model,
-                messages = new[]
-                {
-            new { role = "system", content = systemPrompt },
-            new { role = "user", content = userPrompt }
-        },
-                stream = true
-            };
-
-            var json = JsonSerializer.Serialize(payload);
-            using var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-            var request = new HttpRequestMessage(
-                HttpMethod.Post,
-                $"openai/deployments/{_model}/chat/completions?api-version=2024-08-01-preview"
-            );
-
-            request.Content = content;
-
-            var response = await _http.SendAsync(
-                request,
-                HttpCompletionOption.ResponseHeadersRead
-            );
-
-            response.EnsureSuccessStatusCode();
-
-            using var stream = await response.Content.ReadAsStreamAsync();
-            using var reader = new StreamReader(stream);
-
-            string? line;
-
-            while ((line = await reader.ReadLineAsync()) != null)
-            {
-                if (!line.StartsWith("data: "))
-                    continue;
-
-                string jsonChunk = line.Substring("data: ".Length);
-
-                if (jsonChunk == "[DONE]")
-                    yield break;
-
-                string? contentChunk = null;
-
-                try
-                {
-                    var doc = JsonDocument.Parse(jsonChunk);
-                    contentChunk =
-                        doc.RootElement
-                            .GetProperty("choices")[0]
-                            .GetProperty("delta")
-                            .GetProperty("content")
-                            .GetString();
-                }
-                catch
-                {
-                    // Ignore parsing errors
-                }
-
-                if (!string.IsNullOrWhiteSpace(contentChunk))
-                    yield return contentChunk; 
-            }
+            var ai = await RunChatAsync(systemPrompt, userPrompt);
+            yield return ai.Output;
         }
-
     }
 }
