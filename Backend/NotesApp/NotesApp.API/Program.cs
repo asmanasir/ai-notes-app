@@ -8,13 +8,6 @@ using NotesApp.Infrastructure.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 //
-// ---------- LOGGING ----------
-//
-builder.Logging.ClearProviders();
-builder.Logging.AddConsole();
-builder.Logging.AddDebug();
-
-//
 // ---------- CORS (ONCE ONLY) ----------
 // Local + Azure Static Web App
 //
@@ -104,11 +97,25 @@ if (app.Environment.IsDevelopment())
 
 // 🔴 CORS MUST BE BEFORE MapControllers
 app.UseCors("AllowFrontend");
-
 app.UseHttpsRedirection();
 app.UseAuthorization();
 
+app.Use(async (context, next) =>
+{
+    var traceId = context.TraceIdentifier;
+
+    using (context.RequestServices
+        .GetRequiredService<ILoggerFactory>()
+        .CreateLogger("RequestScope")
+        .BeginScope(new Dictionary<string, object>
+        {
+            ["TraceId"] = traceId
+        }))
+    {
+        await next();
+    }
+});
+
 app.MapHealthChecks("/health");
 app.MapControllers();
-
 app.Run();
