@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.ApplicationInsights;
 using NotesApp.Application.Interfaces;
 using NotesApp.Application.Services;
 using NotesApp.Infrastructure.Data;
@@ -8,8 +9,21 @@ using NotesApp.Infrastructure.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 //
+// ---------- LOGGING (IMPORTANT) ----------
+//
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
+
+// ✅ Enable ILogger → Application Insights
+builder.Logging.AddApplicationInsights();
+builder.Logging.AddFilter<ApplicationInsightsLoggerProvider>(
+    "",
+    LogLevel.Information
+);
+
+//
 // ---------- CORS ----------
-// Local + Azure Static Web App
 //
 builder.Services.AddCors(options =>
 {
@@ -33,11 +47,10 @@ builder.Services.AddHealthChecks();
 
 //
 // ---------- APPLICATION INSIGHTS ----------
-// Disable sampling temporarily (debug / learning)
 //
 builder.Services.AddApplicationInsightsTelemetry(options =>
 {
-    options.EnableAdaptiveSampling = false;
+    options.EnableAdaptiveSampling = false; // good for debugging
 });
 
 //
@@ -47,10 +60,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 //
-// ---------- DATABASE (SQL SERVER) ----------
-// Uses:
-// - User Secrets (local)
-// - Azure App Service → Connection Strings (prod)
+// ---------- DATABASE ----------
 //
 builder.Services.AddDbContext<NotesDbContext>(options =>
 {
@@ -78,8 +88,7 @@ builder.Services.AddScoped<IAiService, AiService>();
 var app = builder.Build();
 
 //
-// ---------- SAFE DATABASE MIGRATION ----------
-// Does NOT crash app if DB is temporarily unavailable
+// ---------- SAFE MIGRATIONS ----------
 //
 using (var scope = app.Services.CreateScope())
 {
@@ -95,16 +104,19 @@ using (var scope = app.Services.CreateScope())
 }
 
 //
-// ---------- MIDDLEWARE (ORDER MATTERS) ----------
+// ---------- MIDDLEWARE ----------
 //
-if (app.Environment.IsDevelopment()) 
-{ 
-    app.UseSwagger(); app.UseSwaggerUI();
-} 
-// 🔴 CORS MUST BE BEFORE MapControllers
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
 app.UseCors("AllowFrontend");
 app.UseHttpsRedirection();
 app.UseAuthorization();
+
 app.MapHealthChecks("/health");
 app.MapControllers();
+
 app.Run();
