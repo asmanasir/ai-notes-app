@@ -12,6 +12,7 @@ namespace NotesApp.API.Controllers
     {
         private readonly INotesService _notesService;
         private readonly ILogger<NotesController> _logger;
+
         private const string UserId = "demo-user";
 
         public NotesController(
@@ -32,6 +33,8 @@ namespace NotesApp.API.Controllers
             string orderBy = "updatedAt",
             string direction = "desc")
         {
+            _logger.LogInformation($"GetPaged requested. Page={page}, PageSize={pageSize}, OrderBy={orderBy}, Direction={direction}, User={UserId}");
+
             var (items, totalCount) =
                 await _notesService.GetPagedAsync(
                     page,
@@ -39,6 +42,8 @@ namespace NotesApp.API.Controllers
                     orderBy,
                     direction,
                     UserId);
+
+            _logger.LogInformation($"GetPaged completed. ReturnedCount={items.Count()}, TotalCount={totalCount}, User={UserId}");
 
             return Ok(new PagedResultDto<NoteResponseDto>
             {
@@ -64,8 +69,18 @@ namespace NotesApp.API.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(string id)
         {
+            _logger.LogInformation($"GetById requested. NoteId={id}, User={UserId}");
+
             var note = await _notesService.GetByIdAsync(id, UserId);
-            if (note == null) return NotFound();
+
+            if (note == null)
+            {
+                _logger.LogWarning($"GetById not found. NoteId={id}, User={UserId}");
+
+                return NotFound();
+            }
+
+            _logger.LogInformation($"GetById completed. NoteId={id}, User={UserId}");
 
             return Ok(note);
         }
@@ -76,6 +91,8 @@ namespace NotesApp.API.Controllers
         [HttpPost]
         public async Task<IActionResult> Create(CreateNoteDto dto)
         {
+            _logger.LogInformation($"Create requested. TitleLength={dto.Title.Length}, ContentLength={dto.Content.Length}, TagsCount={dto.Tags.Count}, User={UserId}");
+
             var note = new Note
             {
                 Id = Guid.NewGuid().ToString(),
@@ -88,8 +105,20 @@ namespace NotesApp.API.Controllers
                 UserId = UserId
             };
 
-            await _notesService.CreateAsync(note);
-            return Ok(note);
+            try
+            {
+                await _notesService.CreateAsync(note);
+
+                _logger.LogInformation($"Create completed. NoteId={note.Id}, User={UserId}");
+
+                return Ok(note);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Create failed. User={UserId}");
+
+                throw;
+            }
         }
 
         // ===========================
@@ -98,8 +127,16 @@ namespace NotesApp.API.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(string id, UpdateNoteDto dto)
         {
+            _logger.LogInformation($"Update requested. NoteId={id}, User={UserId}");
+
             var existing = await _notesService.GetByIdAsync(id, UserId);
-            if (existing == null) return NotFound();
+
+            if (existing == null)
+            {
+                _logger.LogWarning($"Update not found. NoteId={id}, User={UserId}");
+
+                return NotFound();
+            }
 
             existing.Title = dto.Title;
             existing.Content = dto.Content;
@@ -107,8 +144,20 @@ namespace NotesApp.API.Controllers
             existing.Summary = dto.Summary;
             existing.UpdatedAt = DateTime.UtcNow;
 
-            await _notesService.UpdateAsync(existing);
-            return Ok(existing);
+            try
+            {
+                await _notesService.UpdateAsync(existing);
+
+                _logger.LogInformation($"Update completed. NoteId={id}, User={UserId}");
+
+                return Ok(existing);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Update failed. NoteId={id}, User={UserId}");
+
+                throw;
+            }
         }
 
         // ===========================
@@ -117,21 +166,22 @@ namespace NotesApp.API.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(string id)
         {
-            await _notesService.DeleteAsync(id, UserId);
-            return NoContent();
-        }
-        // ===========================
-        // TEST LOG (TEMPORARY)
-        // ===========================
-        [HttpGet("test-log")]
-        public IActionResult TestLog()
-        {
-            _logger.LogInformation(
-                "🚀 Test log from NotesController at {UtcTime}",
-                DateTime.UtcNow);
+            _logger.LogInformation($"Delete requested. NoteId={id}, User={UserId}");
 
-            return Ok("Test log sent");
-        }
+            try
+            {
+                await _notesService.DeleteAsync(id, UserId);
 
+                _logger.LogInformation($"Delete completed. NoteId={id}, User={UserId}");
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Delete failed. NoteId={id}, User={UserId}");
+
+                throw;
+            }
+        }
     }
 }
