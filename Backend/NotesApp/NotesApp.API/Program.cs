@@ -33,7 +33,7 @@ builder.Services.AddHealthChecks();
 
 //
 // ---------- APPLICATION INSIGHTS ----------
-// Disable sampling temporarily (debug / learning)
+// (no sampling so you can see EVERYTHING while learning)
 //
 builder.Services.AddApplicationInsightsTelemetry(options =>
 {
@@ -47,10 +47,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 //
-// ---------- DATABASE (SQL SERVER) ----------
-// Uses:
-// - User Secrets (local)
-// - Azure App Service → Connection Strings (prod)
+// ---------- DATABASE ----------
 //
 builder.Services.AddDbContext<NotesDbContext>(options =>
 {
@@ -78,7 +75,7 @@ builder.Services.AddScoped<IAiService, AiService>();
 var app = builder.Build();
 
 //
-// ---------- SAFE DATABASE MIGRATION ----------
+// ---------- SAFE DB MIGRATION ----------
 //
 using (var scope = app.Services.CreateScope())
 {
@@ -89,12 +86,12 @@ using (var scope = app.Services.CreateScope())
     }
     catch (Exception ex)
     {
-        app.Logger.LogError(ex, "❌ Database migration failed");
+        app.Logger.LogError(ex, "Database migration failed");
     }
 }
 
 //
-// ---------- MIDDLEWARE (ORDER MATTERS) ----------
+// ---------- MIDDLEWARE (ORDER IS CRITICAL) ----------
 //
 if (app.Environment.IsDevelopment())
 {
@@ -104,15 +101,12 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseRouting();                 // 🔑 REQUIRED for CORS + endpoints
+app.UseRouting();                 // 🔑 REQUIRED
 
-app.UseCors("AllowFrontend");     // 🔑 AFTER routing, BEFORE controllers
+app.UseCors("AllowFrontend");     // 🔑 MUST be AFTER routing
 
 app.UseAuthorization();
 
-//
-// ---------- CORRELATION / TRACE ID ----------
-//
 app.Use(async (context, next) =>
 {
     var traceId = context.TraceIdentifier;
