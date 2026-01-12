@@ -106,13 +106,15 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 // ✅ CORS MUST BE BEFORE AUTH & CONTROLLERS
-app.UseCors("AllowFrontend");
+app.UseHttpsRedirection();
+
+app.UseRouting();              // 🔑 REQUIRED
+
+app.UseCors("AllowFrontend");  // 🔑 MUST be after routing
 
 app.UseAuthorization();
 
-//
-// ---------- CORRELATION / TRACE ID ----------
-//
+// Correlation / TraceId middleware
 app.Use(async (context, next) =>
 {
     var traceId = context.TraceIdentifier;
