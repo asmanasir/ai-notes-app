@@ -30,7 +30,10 @@ builder.Services.AddCors(options =>
 //
 builder.Services.AddControllers();
 builder.Services.AddHealthChecks();
-builder.Services.AddApplicationInsightsTelemetry();
+builder.Services.AddApplicationInsightsTelemetry(options =>
+{
+    options.EnableAdaptiveSampling = false;
+});
 
 //
 // ---------- SWAGGER ----------
