@@ -9,6 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 //
 // ---------- CORS ----------
+// Local + Azure Static Web App
 //
 builder.Services.AddCors(options =>
 {
@@ -32,6 +33,7 @@ builder.Services.AddHealthChecks();
 
 //
 // ---------- APPLICATION INSIGHTS ----------
+// Disable sampling temporarily (debug / learning)
 //
 builder.Services.AddApplicationInsightsTelemetry(options =>
 {
@@ -45,7 +47,10 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 //
-// ---------- DATABASE ----------
+// ---------- DATABASE (SQL SERVER) ----------
+// Uses:
+// - User Secrets (local)
+// - Azure App Service → Connection Strings (prod)
 //
 builder.Services.AddDbContext<NotesDbContext>(options =>
 {
@@ -54,9 +59,9 @@ builder.Services.AddDbContext<NotesDbContext>(options =>
         sql =>
         {
             sql.EnableRetryOnFailure(
-                5,
-                TimeSpan.FromSeconds(30),
-                null);
+                maxRetryCount: 5,
+                maxRetryDelay: TimeSpan.FromSeconds(30),
+                errorNumbersToAdd: null);
         });
 });
 
@@ -73,7 +78,8 @@ builder.Services.AddScoped<IAiService, AiService>();
 var app = builder.Build();
 
 //
-// ---------- DB MIGRATION ----------
+// ---------- SAFE DATABASE MIGRATION ----------
+// Does NOT crash app if DB is temporarily unavailable
 //
 using (var scope = app.Services.CreateScope())
 {
@@ -84,27 +90,21 @@ using (var scope = app.Services.CreateScope())
     }
     catch (Exception ex)
     {
-        app.Logger.LogError(ex, "Database migration failed");
+        app.Logger.LogError(ex, "❌ Database migration failed");
     }
 }
 
 //
-// ---------- MIDDLEWARE ----------
+// ---------- MIDDLEWARE (ORDER MATTERS) ----------
 //
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
-app.UseHttpsRedirection();
-
-// ✅ CORS MUST be before MapControllers
+if (app.Environment.IsDevelopment()) 
+{ 
+    app.UseSwagger(); app.UseSwaggerUI();
+} 
+// 🔴 CORS MUST BE BEFORE MapControllers
 app.UseCors("AllowFrontend");
-
+app.UseHttpsRedirection();
 app.UseAuthorization();
-
 app.MapHealthChecks("/health");
 app.MapControllers();
-
 app.Run();

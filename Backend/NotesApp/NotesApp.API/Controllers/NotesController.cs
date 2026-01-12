@@ -22,11 +22,6 @@ namespace NotesApp.API.Controllers
             _logger = logger;
         }
 
-        public NotesController(INotesService notesService)
-        {
-            _notesService = notesService;
-        }
-
         // ===========================
         // GET (paged)
         // ===========================
