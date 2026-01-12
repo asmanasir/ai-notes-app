@@ -9,7 +9,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 //
 // ---------- CORS ----------
-// Local + Azure Static Web App
 //
 builder.Services.AddCors(options =>
 {
@@ -33,7 +32,6 @@ builder.Services.AddHealthChecks();
 
 //
 // ---------- APPLICATION INSIGHTS ----------
-// (no sampling so you can see EVERYTHING while learning)
 //
 builder.Services.AddApplicationInsightsTelemetry(options =>
 {
@@ -56,9 +54,9 @@ builder.Services.AddDbContext<NotesDbContext>(options =>
         sql =>
         {
             sql.EnableRetryOnFailure(
-                maxRetryCount: 5,
-                maxRetryDelay: TimeSpan.FromSeconds(30),
-                errorNumbersToAdd: null);
+                5,
+                TimeSpan.FromSeconds(30),
+                null);
         });
 });
 
@@ -75,7 +73,7 @@ builder.Services.AddScoped<IAiService, AiService>();
 var app = builder.Build();
 
 //
-// ---------- SAFE DB MIGRATION ----------
+// ---------- DB MIGRATION ----------
 //
 using (var scope = app.Services.CreateScope())
 {
@@ -91,7 +89,7 @@ using (var scope = app.Services.CreateScope())
 }
 
 //
-// ---------- MIDDLEWARE (ORDER IS CRITICAL) ----------
+// ---------- MIDDLEWARE ----------
 //
 if (app.Environment.IsDevelopment())
 {
@@ -101,27 +99,10 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseRouting();                 // 🔑 REQUIRED
-
-app.UseCors("AllowFrontend");     // 🔑 MUST be AFTER routing
+// ✅ CORS MUST be before MapControllers
+app.UseCors("AllowFrontend");
 
 app.UseAuthorization();
-
-app.Use(async (context, next) =>
-{
-    var traceId = context.TraceIdentifier;
-
-    using (context.RequestServices
-        .GetRequiredService<ILoggerFactory>()
-        .CreateLogger("RequestScope")
-        .BeginScope(new Dictionary<string, object>
-        {
-            ["TraceId"] = traceId
-        }))
-    {
-        await next();
-    }
-});
 
 app.MapHealthChecks("/health");
 app.MapControllers();
