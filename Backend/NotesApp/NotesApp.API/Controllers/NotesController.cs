@@ -11,7 +11,16 @@ namespace NotesApp.API.Controllers
     public class NotesController : ControllerBase
     {
         private readonly INotesService _notesService;
+        private readonly ILogger<NotesController> _logger;
         private const string UserId = "demo-user";
+
+        public NotesController(
+            INotesService notesService,
+            ILogger<NotesController> logger)
+        {
+            _notesService = notesService;
+            _logger = logger;
+        }
 
         public NotesController(INotesService notesService)
         {
@@ -116,5 +125,18 @@ namespace NotesApp.API.Controllers
             await _notesService.DeleteAsync(id, UserId);
             return NoContent();
         }
+        // ===========================
+        // TEST LOG (TEMPORARY)
+        // ===========================
+        [HttpGet("test-log")]
+        public IActionResult TestLog()
+        {
+            _logger.LogInformation(
+                "🚀 Test log from NotesController at {UtcTime}",
+                DateTime.UtcNow);
+
+            return Ok("Test log sent");
+        }
+
     }
 }
