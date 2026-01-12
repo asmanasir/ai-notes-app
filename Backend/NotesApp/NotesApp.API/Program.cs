@@ -79,7 +79,6 @@ var app = builder.Build();
 
 //
 // ---------- SAFE DATABASE MIGRATION ----------
-// Does NOT crash app if DB is temporarily unavailable
 //
 using (var scope = app.Services.CreateScope())
 {
@@ -105,16 +104,15 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// ✅ CORS MUST BE BEFORE AUTH & CONTROLLERS
-app.UseHttpsRedirection();
+app.UseRouting();                 // 🔑 REQUIRED for CORS + endpoints
 
-app.UseRouting();              // 🔑 REQUIRED
-
-app.UseCors("AllowFrontend");  // 🔑 MUST be after routing
+app.UseCors("AllowFrontend");     // 🔑 AFTER routing, BEFORE controllers
 
 app.UseAuthorization();
 
-// Correlation / TraceId middleware
+//
+// ---------- CORRELATION / TRACE ID ----------
+//
 app.Use(async (context, next) =>
 {
     var traceId = context.TraceIdentifier;
