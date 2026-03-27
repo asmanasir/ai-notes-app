@@ -2,22 +2,17 @@ import { useCallback, useEffect, useState } from "react";
 import { notesApi } from "../services/notesApi";
 import type { Note } from "../features/notes/types";
 
-export function useNotesPagination(page: number, pageSize: number) {
+export function useNotesPagination(page: number, pageSize: number, search?: string) {
   const [notes, setNotes] = useState<Note[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // ========================
-  // Fetch notes (shared)
-  // ========================
   const loadNotes = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-
-      const data = await notesApi.getNotesPaged(page, pageSize);
-
+      const data = await notesApi.getNotesPaged(page, pageSize, search);
       setNotes(data.items);
       setTotalCount(data.totalCount);
     } catch {
@@ -25,39 +20,36 @@ export function useNotesPagination(page: number, pageSize: number) {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize]);
+  }, [page, pageSize, search]);
 
-  // Fetch on mount & page change
   useEffect(() => {
     loadNotes();
   }, [loadNotes]);
 
-  // ========================
-  // Create
-  // ========================
-  const addNote = async (title: string, content: string) => {
-    await notesApi.createNote(title, content);
-    await loadNotes(); // 🔁 refetch
+  const addNote = async (title: string, content: string, tags: string[] = []) => {
+    await notesApi.createNote(title, content, tags);
+    await loadNotes();
   };
 
-  // ========================
-  // Update
-  // ========================
   const updateNote = async (
     id: string,
     title: string,
-    content: string
+    content: string,
+    tags: string[] = [],
+    pinned: boolean = false
   ) => {
-    await notesApi.updateNote(id, title, content);
-    await loadNotes(); // 🔁 refetch
+    await notesApi.updateNote(id, title, content, tags, null, pinned);
+    await loadNotes();
   };
 
-  // ========================
-  // Delete
-  // ========================
+  const togglePin = async (id: string) => {
+    await notesApi.togglePin(id);
+    await loadNotes();
+  };
+
   const deleteNote = async (id: string) => {
     await notesApi.deleteNote(id);
-    await loadNotes(); // 🔁 refetch
+    await loadNotes();
   };
 
   return {
@@ -65,13 +57,10 @@ export function useNotesPagination(page: number, pageSize: number) {
     totalCount,
     loading,
     error,
-
-    // actions
     addNote,
     updateNote,
+    togglePin,
     deleteNote,
-
-    // manual reload (optional)
     reload: loadNotes,
   };
 }

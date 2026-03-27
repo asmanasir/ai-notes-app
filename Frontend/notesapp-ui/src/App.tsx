@@ -15,6 +15,14 @@ function App() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [activeTag, setActiveTag] = useState<string | null>(null);
+
+  // Debounce search so we don't fire a request on every keystroke
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const {
     notes,
@@ -22,8 +30,9 @@ function App() {
     loading,
     addNote,
     updateNote,
+    togglePin,
     deleteNote,
-  } = useNotesPagination(page, pageSize);
+  } = useNotesPagination(page, pageSize, debouncedSearch);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
@@ -54,11 +63,11 @@ function App() {
   /* =========================
      Save handler
   ========================= */
-  const handleSave = async (title: string, content: string) => {
+  const handleSave = async (title: string, content: string, tags: string[]) => {
     if (editingNote) {
-      await updateNote(editingNote.id, title, content);
+      await updateNote(editingNote.id, title, content, tags, editingNote.pinned);
     } else {
-      await addNote(title, content);
+      await addNote(title, content, tags);
     }
 
     setModalOpen(false);
@@ -67,29 +76,19 @@ function App() {
   };
 
   /* =========================
-     Sort + Search
+     Tag filter (client-side on current page)
   ========================= */
-  const sortedNotes = [...notes].sort((a, b) => {
-    if (a.pinned && !b.pinned) return -1;
-    if (!a.pinned && b.pinned) return 1;
-    return (
-      new Date(b.updatedAt).getTime() -
-      new Date(a.updatedAt).getTime()
-    );
-  });
+  const filteredNotes = activeTag
+    ? notes.filter((n) => n.tags.includes(activeTag))
+    : notes;
 
-  const filteredNotes = sortedNotes.filter((note) => {
-    const q = search.toLowerCase();
-    return (
-      note.title.toLowerCase().includes(q) ||
-      note.content.toLowerCase().includes(q)
-    );
-  });
+  /* Collect all unique tags from current page for the filter bar */
+  const allTags = Array.from(new Set(notes.flatMap((n) => n.tags))).sort();
 
   return (
     <AppLayout>
       {/* ================= HEADER ================= */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-semibold">Notes App</h1>
 
         <div className="flex gap-3 items-center">
@@ -98,7 +97,10 @@ function App() {
             id="search-input"
             placeholder="Search notes…"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
             className="
               w-56
               bg-white dark:bg-gray-800
@@ -133,17 +135,34 @@ function App() {
         </div>
       </div>
 
+      {/* ================= TAG FILTER ================= */}
+      {allTags.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-4">
+          {allTags.map((tag) => (
+            <button
+              key={tag}
+              onClick={() => setActiveTag(activeTag === tag ? null : tag)}
+              className={`
+                px-2 py-0.5 rounded-full text-xs font-medium border transition-colors
+                ${activeTag === tag
+                  ? "bg-blue-600 text-white border-blue-600"
+                  : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-blue-400"
+                }
+              `}
+            >
+              #{tag}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* ================= CONTENT ================= */}
       {loading ? (
-        <div className="text-center text-gray-500">
-          Loading…
-        </div>
+        <div className="text-center text-gray-500">Loading…</div>
       ) : filteredNotes.length === 0 ? (
         <div className="text-center py-20 space-y-4">
           <div className="text-6xl">📝</div>
-          <h2 className="text-xl font-semibold">
-            No notes found
-          </h2>
+          <h2 className="text-xl font-semibold">No notes found</h2>
           <p className="text-gray-500 dark:text-gray-400">
             Create your first note or try a different search.
           </p>
@@ -166,15 +185,17 @@ function App() {
             await deleteNote(id);
             setPage(1);
           }}
-          onTogglePin={() => {}}
+          onTogglePin={togglePin}
         />
       )}
 
       {/* ================= NOTE MODAL ================= */}
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)}>
+      <Modal open={modalOpen} onClose={() => { setModalOpen(false); setEditingNote(null); }}>
         <NoteEditor
           initialTitle={editingNote?.title}
           initialContent={editingNote?.content}
+          initialTags={editingNote?.tags ?? []}
+          noteId={editingNote?.id}
           onSave={handleSave}
         />
       </Modal>

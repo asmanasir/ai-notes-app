@@ -31,19 +31,15 @@ namespace NotesApp.API.Controllers
             int page = 1,
             int pageSize = 10,
             string orderBy = "updatedAt",
-            string direction = "desc")
+            string direction = "desc",
+            string? search = null)
         {
-            _logger.LogInformation($"GetPaged requested. Page={page}, PageSize={pageSize}, OrderBy={orderBy}, Direction={direction}, User={UserId}");
+            _logger.LogInformation("GetPaged requested. Page={Page}, PageSize={PageSize}, Search={Search}, User={UserId}", page, pageSize, search, UserId);
 
             var (items, totalCount) =
-                await _notesService.GetPagedAsync(
-                    page,
-                    pageSize,
-                    orderBy,
-                    direction,
-                    UserId);
+                await _notesService.GetPagedAsync(page, pageSize, orderBy, direction, UserId, search);
 
-            _logger.LogInformation($"GetPaged completed. ReturnedCount={items.Count()}, TotalCount={totalCount}, User={UserId}");
+            _logger.LogInformation("GetPaged completed. ReturnedCount={Count}, TotalCount={Total}, User={UserId}", items.Count(), totalCount, UserId);
 
             return Ok(new PagedResultDto<NoteResponseDto>
             {
@@ -57,6 +53,7 @@ namespace NotesApp.API.Controllers
                     Content = n.Content,
                     Tags = n.Tags,
                     Summary = n.Summary,
+                    Pinned = n.Pinned,
                     CreatedAt = n.CreatedAt,
                     UpdatedAt = n.UpdatedAt
                 }).ToList()
@@ -142,6 +139,7 @@ namespace NotesApp.API.Controllers
             existing.Content = dto.Content;
             existing.Tags = dto.Tags;
             existing.Summary = dto.Summary;
+            existing.Pinned = dto.Pinned;
             existing.UpdatedAt = DateTime.UtcNow;
 
             try
@@ -184,15 +182,23 @@ namespace NotesApp.API.Controllers
             }
         }
 
-        [HttpGet("test-log")]
-        public IActionResult TestLog()
+        // ===========================
+        // PATCH pin
+        // ===========================
+        [HttpPatch("{id}/pin")]
+        public async Task<IActionResult> TogglePin(string id)
         {
-            _logger.LogInformation(
-                "🚀 Test log from NotesController at {UtcTime}",
-                DateTime.UtcNow);
+            var existing = await _notesService.GetByIdAsync(id, UserId);
 
-            return Ok("Test log sent");
+            if (existing == null)
+                return NotFound();
+
+            existing.Pinned = !existing.Pinned;
+            existing.UpdatedAt = DateTime.UtcNow;
+
+            await _notesService.UpdateAsync(existing);
+
+            return Ok(new { existing.Id, existing.Pinned });
         }
-
     }
 }

@@ -6,75 +6,84 @@ import AIToolsPanel from "../ai/AIToolsPanel";
 import AIResult from "../ai/AIResult";
 import { aiApi } from "../../services/ai";
 import { exportNoteToPDF } from "../../utils/exportToPdf";
+import { notesApi } from "../../services/notesApi";
 
 interface Props {
   initialTitle?: string;
   initialContent?: string;
-  onSave: (title: string, content: string) => void;
+  initialTags?: string[];
+  noteId?: string;
+  onSave: (title: string, content: string, tags: string[]) => void;
 }
 
 export default function NoteEditor({
   initialTitle = "",
   initialContent = "",
+  initialTags = [],
+  noteId,
   onSave,
 }: Props) {
   const [title, setTitle] = useState(initialTitle);
   const [content, setContent] = useState(initialContent);
+  const [tags, setTags] = useState<string[]>(initialTags);
+  const [tagInput, setTagInput] = useState("");
 
   const [aiResult, setAiResult] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [isAIGenerated, setIsAIGenerated] = useState(false);
+  const [autoSaveStatus, setAutoSaveStatus] = useState<"saved" | "saving" | null>(null);
 
   const titleRef = useRef<HTMLInputElement>(null);
+  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const maxChars = 2000;
-  const isValid =
-    title.trim().length > 0 && content.trim().length > 0;
+  const isValid = title.trim().length > 0 && content.trim().length > 0;
 
-  /* =========================
-     Auto-focus title on open
-  ========================= */
+  /* Auto-focus title on open */
   useEffect(() => {
     titleRef.current?.focus();
   }, []);
 
-  /* =========================
-     Cmd / Ctrl + Enter to save
-  ========================= */
+  /* Cmd / Ctrl + Enter to save */
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (
-        (e.metaKey || e.ctrlKey) &&
-        e.key === "Enter" &&
-        isValid &&
-        !loading
-      ) {
-        onSave(title.trim(), content.trim());
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && isValid && !loading) {
+        onSave(title.trim(), content.trim(), tags);
       }
     };
-
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [title, content, isValid, loading, onSave]);
+  }, [title, content, tags, isValid, loading, onSave]);
 
-  /* =========================
-     AI handler
-  ========================= */
-  const handleAI = async (
-    callback: () => Promise<{ output: string }>
-  ) => {
+  /* Auto-save when editing an existing note */
+  useEffect(() => {
+    if (!noteId || !isValid) return;
+
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+
+    autoSaveTimer.current = setTimeout(async () => {
+      setAutoSaveStatus("saving");
+      try {
+        await notesApi.updateNote(noteId, title.trim(), content.trim(), tags);
+        setAutoSaveStatus("saved");
+      } catch {
+        setAutoSaveStatus(null);
+      }
+    }, 1500);
+
+    return () => {
+      if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    };
+  }, [title, content, tags, noteId, isValid]);
+
+  /* AI handler */
+  const handleAI = async (callback: () => Promise<{ output: string }>) => {
     setLoading(true);
     setAiResult(null);
-
     try {
       const res = await callback();
       const output = res.output?.trim();
-
-      if (!output) {
-        setAiResult("Empty AI response.");
-      } else {
-        setAiResult(output);
-      }
+      setAiResult(output || "Empty AI response.");
     } catch (err) {
       console.error("AI error:", err);
       setAiResult("AI service error.");
@@ -82,6 +91,20 @@ export default function NoteEditor({
       setLoading(false);
     }
   };
+
+  /* Tag input: add on Enter or comma */
+  const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      const tag = tagInput.trim().toLowerCase().replace(/,/g, "");
+      if (tag && !tags.includes(tag)) {
+        setTags([...tags, tag]);
+      }
+      setTagInput("");
+    }
+  };
+
+  const removeTag = (tag: string) => setTags(tags.filter((t) => t !== tag));
 
   return (
     <div
@@ -94,7 +117,14 @@ export default function NoteEditor({
       "
     >
       {/* ================= HEADER ================= */}
-      <h2 className="text-lg font-semibold">Note Editor</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold">Note Editor</h2>
+        {autoSaveStatus && (
+          <span className="text-xs text-gray-400">
+            {autoSaveStatus === "saving" ? "Saving…" : "Saved"}
+          </span>
+        )}
+      </div>
 
       {/* ================= AI TOOLS ================= */}
       <AIToolsPanel
@@ -122,9 +152,7 @@ export default function NoteEditor({
 
       {/* ================= AI LOADING ================= */}
       {loading && (
-        <div className="text-sm text-blue-500">
-          AI is thinking…
-        </div>
+        <div className="text-sm text-blue-500">AI is thinking…</div>
       )}
 
       {/* ================= AI RESULT ================= */}
@@ -177,11 +205,44 @@ export default function NoteEditor({
         {content.length}/{maxChars} characters
       </div>
 
+      {/* ================= TAGS ================= */}
+      <div className="flex flex-col gap-1">
+        <div className="flex flex-wrap gap-1">
+          {tags.map((tag) => (
+            <span
+              key={tag}
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
+            >
+              #{tag}
+              <button
+                onClick={() => removeTag(tag)}
+                className="hover:text-red-500 leading-none"
+              >
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+        <input
+          type="text"
+          placeholder="Add tags (press Enter or comma)…"
+          value={tagInput}
+          onChange={(e) => setTagInput(e.target.value)}
+          onKeyDown={handleTagKeyDown}
+          className="
+            text-sm border rounded px-2 py-1
+            bg-white dark:bg-gray-800
+            border-gray-300 dark:border-gray-600
+            text-gray-900 dark:text-gray-100
+            placeholder:text-gray-400 dark:placeholder:text-gray-500
+            focus:outline-none focus:ring-1 focus:ring-blue-400
+          "
+        />
+      </div>
+
       {/* Validation */}
       {!isValid && (
-        <p className="text-sm text-red-500">
-          Title and content are required.
-        </p>
+        <p className="text-sm text-red-500">Title and content are required.</p>
       )}
 
       {/* ================= STICKY ACTIONS ================= */}
@@ -196,7 +257,7 @@ export default function NoteEditor({
       >
         <Button
           disabled={!isValid || loading}
-          onClick={() => onSave(title.trim(), content.trim())}
+          onClick={() => onSave(title.trim(), content.trim(), tags)}
         >
           {loading ? "Saving..." : "Save"}
         </Button>

@@ -7,18 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Azure OpenAI -->
-    <PackageReference Include="Azure.AI.OpenAI" Version="2.1.0" />
-    <PackageReference Include="Azure.Core" Version="1.50.0" />
-    <PackageReference Include="Azure.Identity" Version="1.17.1" />
     <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.23.0" />
 
-    <!-- Cosmos DB -->
-    <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.56.0" />
-
-    <!-- EF Core (ALL SAME VERSION) -->
+    <!-- EF Core -->
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.7" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.7" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.7" />
 
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.7">

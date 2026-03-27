@@ -8,8 +8,5 @@ namespace NotesApp.Application.Services
         Task<AIResponse> RewriteAsync(RewriteRequest req);
         Task<AIResponse> SuggestTagsAsync(SuggestTagsRequest req);
         Task<AIResponse> GenerateNoteAsync(GenerateNoteRequest req);
-
-        // NEW: Streaming
-        IAsyncEnumerable<string> StreamChatAsync(string systemPrompt, string userPrompt);
     }
 }

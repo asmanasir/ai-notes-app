@@ -9,7 +9,8 @@ namespace NotesApp.Application.Interfaces
             int pageSize,
             string orderBy,
             string direction,
-            string userId);
+            string userId,
+            string? search = null);
 
         Task<Note?> GetByIdAsync(string id, string userId);
 

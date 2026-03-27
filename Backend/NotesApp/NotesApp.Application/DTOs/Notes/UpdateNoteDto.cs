@@ -6,5 +6,6 @@
         public string Content { get; set; } = default!;
         public List<string> Tags { get; set; } = new();
         public string? Summary { get; set; }
+        public bool Pinned { get; set; }
     }
 }

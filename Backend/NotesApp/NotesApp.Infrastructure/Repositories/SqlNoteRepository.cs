@@ -14,16 +14,10 @@ namespace NotesApp.Infrastructure.Repositories
             _db = db;
         }
 
-        public async Task<IEnumerable<Note>> GetAllAsync(string userId)
-            => await _db.Notes
-                .Where(n => n.UserId == userId)
-                .ToListAsync();
-
         public async Task<Note?> GetByIdAsync(string id, string userId)
             => await _db.Notes
                 .FirstOrDefaultAsync(n => n.Id == id && n.UserId == userId);
 
-        // ✅ FIXED: method name matches interface
         public async Task CreateAsync(Note note)
         {
             _db.Notes.Add(note);
@@ -51,14 +45,19 @@ namespace NotesApp.Infrastructure.Repositories
             int pageSize,
             string orderBy,
             string direction,
-            string userId)
+            string userId,
+            string? search = null)
         {
-            var query = _db.Notes
-                .Where(n => n.UserId == userId);
+            var query = _db.Notes.Where(n => n.UserId == userId);
+
+            if (!string.IsNullOrWhiteSpace(search))
+                query = query.Where(n =>
+                    n.Title.Contains(search) ||
+                    n.Content.Contains(search));
 
             query = direction.Equals("desc", StringComparison.OrdinalIgnoreCase)
-                ? query.OrderByDescending(n => n.UpdatedAt)
-                : query.OrderBy(n => n.UpdatedAt);
+                ? query.OrderByDescending(n => n.Pinned).ThenByDescending(n => n.UpdatedAt)
+                : query.OrderByDescending(n => n.Pinned).ThenBy(n => n.UpdatedAt);
 
             var totalCount = await query.CountAsync();
 

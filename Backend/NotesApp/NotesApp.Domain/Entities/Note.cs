@@ -17,6 +17,8 @@ namespace NotesApp.Domain.Entities
 
         public string? Summary { get; set; }
 
+        public bool Pinned { get; set; } = false;
+
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
     }

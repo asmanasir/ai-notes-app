@@ -44,6 +44,20 @@ export default function NoteCard({
         {note.content}
       </p>
 
+      {/* Tags */}
+      {note.tags.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {note.tags.map((tag) => (
+            <span
+              key={tag}
+              className="px-2 py-0.5 rounded-full text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
+            >
+              #{tag}
+            </span>
+          ))}
+        </div>
+      )}
+
       {/* AI badge */}
       {note.isAIGenerated && (
         <span className="inline-flex items-center gap-1 text-xs text-purple-700 bg-purple-100 dark:bg-purple-900/30 dark:text-purple-300 px-2 py-1 rounded">

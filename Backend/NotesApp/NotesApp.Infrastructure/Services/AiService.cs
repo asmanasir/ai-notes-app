@@ -16,7 +16,7 @@ namespace NotesApp.Infrastructure.Services
         private readonly HttpClient _http;
         private readonly string _model;
         private readonly ILogger<AiService> _logger;
-        private readonly TelemetryClient _telemetry;
+        private readonly TelemetryClient? _telemetry;
 
         private static readonly JsonSerializerOptions JsonOptions =
             new() { PropertyNameCaseInsensitive = true };
@@ -49,8 +49,6 @@ namespace NotesApp.Infrastructure.Services
             };
 
             _http.DefaultRequestHeaders.Add("api-key", apiKey);
-            _logger.LogInformation("TelemetryClient injected: {Injected}", _telemetry != null);
-
         }
 
         // ===========================
@@ -92,7 +90,7 @@ namespace NotesApp.Infrastructure.Services
                 if (!response.IsSuccessStatusCode)
                 {
                     string error = await response.Content.ReadAsStringAsync();
-                    _telemetry.GetMetric("AI.Requests.Failed").TrackValue(1);
+                    _telemetry?.GetMetric("AI.Requests.Failed").TrackValue(1);
 
                     _logger.LogError(
                         "AI request failed. Status={Status}. Body={Body}",
@@ -115,12 +113,12 @@ namespace NotesApp.Infrastructure.Services
                 int promptTokens = usage.GetProperty("prompt_tokens").GetInt32();
                 int completionTokens = usage.GetProperty("completion_tokens").GetInt32();
 
-                _telemetry.GetMetric("AI.Requests.Total").TrackValue(1);
-                _telemetry.GetMetric("AI.Tokens.Prompt").TrackValue(promptTokens);
-                _telemetry.GetMetric("AI.Tokens.Completion").TrackValue(completionTokens);
+                _telemetry?.GetMetric("AI.Requests.Total").TrackValue(1);
+                _telemetry?.GetMetric("AI.Tokens.Prompt").TrackValue(promptTokens);
+                _telemetry?.GetMetric("AI.Tokens.Completion").TrackValue(completionTokens);
 
                 stopwatch.Stop();
-                _telemetry.GetMetric("AI.LatencyMs").TrackValue(stopwatch.ElapsedMilliseconds);
+                _telemetry?.GetMetric("AI.LatencyMs").TrackValue(stopwatch.ElapsedMilliseconds);
 
                 _logger.LogInformation(
                     "AI request completed in {Duration} ms",
@@ -203,12 +201,5 @@ namespace NotesApp.Infrastructure.Services
                 250);
         }
 
-        // Simple streaming implementation to satisfy IAiService contract.
-        // Currently yields the full response as a single chunk. Replace with real streaming if the API supports it.
-        public async IAsyncEnumerable<string> StreamChatAsync(string systemPrompt, string userPrompt)
-        {
-            var ai = await RunChatAsync(systemPrompt, userPrompt);
-            yield return ai.Output;
-        }
     }
 }

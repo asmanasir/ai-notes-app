@@ -4,7 +4,6 @@ namespace NotesApp.Application.Interfaces
 {
     public interface INoteRepository
     {
-        Task<IEnumerable<Note>> GetAllAsync(string userId);
         Task<Note?> GetByIdAsync(string id, string userId);
         Task CreateAsync(Note note);
         Task UpdateAsync(Note note);
@@ -15,6 +14,7 @@ namespace NotesApp.Application.Interfaces
             int pageSize,
             string orderBy,
             string direction,
-            string userId);
+            string userId,
+            string? search = null);
     }
 }

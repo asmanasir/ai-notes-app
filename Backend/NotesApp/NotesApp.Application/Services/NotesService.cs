@@ -26,16 +26,17 @@ namespace NotesApp.Application.Services
             int pageSize,
             string orderBy,
             string direction,
-            string userId)
+            string userId,
+            string? search = null)
         {
             _logger.LogInformation(
-                "Fetching notes page={Page}, size={Size}, user={UserId}",
-                page, pageSize, userId);
+                "Fetching notes page={Page}, size={Size}, user={UserId}, search={Search}",
+                page, pageSize, userId, search);
 
             _telemetry.GetMetric("Notes.Read").TrackValue(1);
 
             return await _repo.GetPagedAsync(
-                page, pageSize, orderBy, direction, userId);
+                page, pageSize, orderBy, direction, userId, search);
         }
 
         public async Task<Note?> GetByIdAsync(string id, string userId)
