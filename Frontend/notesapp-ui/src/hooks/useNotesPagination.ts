@@ -2,13 +2,14 @@ import { useCallback, useEffect, useState } from "react";
 import { notesApi } from "../services/notesApi";
 import type { Note } from "../features/notes/types";
 
-export function useNotesPagination(page: number, pageSize: number, search?: string) {
+export function useNotesPagination(page: number, pageSize: number, search?: string, enabled = true) {
   const [notes, setNotes] = useState<Note[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const loadNotes = useCallback(async () => {
+    if (!enabled) return;
     try {
       setLoading(true);
       setError(null);
@@ -20,7 +21,7 @@ export function useNotesPagination(page: number, pageSize: number, search?: stri
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, search]);
+  }, [page, pageSize, search, enabled]);
 
   useEffect(() => {
     loadNotes();

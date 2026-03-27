@@ -44,7 +44,7 @@ function NotesApp() {
   }, [search]);
 
   const { notes, totalCount, loading, addNote, updateNote, togglePin, deleteNote } =
-    useNotesPagination(page, pageSize, debouncedSearch);
+    useNotesPagination(page, pageSize, debouncedSearch, !!user);
 
   // Keyboard shortcuts
   useEffect(() => {

@@ -30,9 +30,10 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowFrontend", policy =>
     {
         policy
-            .WithOrigins(
-                "http://localhost:5173",
-                "https://orange-rock-0ad77e71e.3.azurestaticapps.net"
+            .SetIsOriginAllowed(origin =>
+                origin == "http://localhost:5173" ||
+                new Uri(origin).Host.EndsWith(".azurestaticapps.net") ||
+                new Uri(origin).Host == "orange-rock-0ad77e71e.3.azurestaticapps.net"
             )
             .AllowAnyHeader()
             .AllowAnyMethod();
