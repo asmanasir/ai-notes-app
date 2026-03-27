@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState } from "react";
 import type { ReactNode } from "react";
 import { api } from "../services/api";
 
@@ -16,25 +16,27 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+function applyToken(t: string | null) {
+  if (t) {
+    api.defaults.headers.common["Authorization"] = `Bearer ${t}`;
+  } else {
+    delete api.defaults.headers.common["Authorization"];
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [token, setToken] = useState<string | null>(
-    () => localStorage.getItem("token")
-  );
+  const [token, setToken] = useState<string | null>(() => {
+    const t = localStorage.getItem("token");
+    applyToken(t); // set header synchronously on first load
+    return t;
+  });
   const [user, setUser] = useState<AuthUser | null>(() => {
     const stored = localStorage.getItem("user");
     return stored ? JSON.parse(stored) : null;
   });
 
-  // Attach token to every request
-  useEffect(() => {
-    const interceptor = api.interceptors.request.use((config) => {
-      if (token) config.headers.Authorization = `Bearer ${token}`;
-      return config;
-    });
-    return () => api.interceptors.request.eject(interceptor);
-  }, [token]);
-
   const save = (t: string, email: string) => {
+    applyToken(t);
     setToken(t);
     setUser({ email });
     localStorage.setItem("token", t);
@@ -58,6 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
+    applyToken(null);
     setToken(null);
     setUser(null);
     localStorage.removeItem("token");
