@@ -32,6 +32,11 @@ namespace NotesApp.API.Controllers
             {
                 return Conflict(new { message = ex.Message });
             }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Register failed for {Email}", dto.Email);
+                return StatusCode(500, new { message = "Registration failed: " + ex.Message });
+            }
         }
 
         [HttpPost("login")]
@@ -48,6 +53,11 @@ namespace NotesApp.API.Controllers
             catch (UnauthorizedAccessException ex)
             {
                 return Unauthorized(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Login failed for {Email}", dto.Email);
+                return StatusCode(500, new { message = "Login failed: " + ex.Message });
             }
         }
     }

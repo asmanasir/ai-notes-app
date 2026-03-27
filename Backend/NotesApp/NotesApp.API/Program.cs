@@ -145,6 +145,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseExceptionHandler("/error");
 app.UseCors("AllowFrontend");
 app.UseHttpsRedirection();
 app.UseAuthentication();
@@ -152,5 +153,14 @@ app.UseAuthorization();
 
 app.MapHealthChecks("/health");
 app.MapControllers();
+
+app.Map("/error", (HttpContext ctx) =>
+{
+    var ex = ctx.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>()?.Error;
+    return Results.Problem(
+        title: "An error occurred.",
+        detail: ex?.Message,
+        statusCode: 500);
+});
 
 app.Run();
