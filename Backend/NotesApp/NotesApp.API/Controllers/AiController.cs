@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using NotesApp.Application.Services;
 using NotesApp.Application.DTOs.AI;
@@ -7,6 +8,7 @@ namespace NotesApp.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class AiController : ControllerBase
     {
         private readonly IAiService _ai;

@@ -1,5 +1,7 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.ApplicationInsights;
+using Microsoft.IdentityModel.Tokens;
 using NotesApp.Application.Interfaces;
 using NotesApp.Application.Services;
 using NotesApp.Infrastructure.Data;
@@ -7,22 +9,18 @@ using NotesApp.Infrastructure.Repositories;
 using NotesApp.Infrastructure.Services;
 using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.ApplicationInsights;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
 //
-// ---------- LOGGING (IMPORTANT) ----------
+// ---------- LOGGING ----------
 //
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
-
-// ✅ Enable ILogger → Application Insights
 builder.Logging.AddApplicationInsights();
-builder.Logging.AddFilter<ApplicationInsightsLoggerProvider>(
-    "",
-    LogLevel.Information
-);
+builder.Logging.AddFilter<ApplicationInsightsLoggerProvider>("", LogLevel.Information);
 
 //
 // ---------- CORS ----------
@@ -42,6 +40,27 @@ builder.Services.AddCors(options =>
 });
 
 //
+// ---------- JWT AUTH ----------
+//
+var jwtSecret = builder.Configuration["Jwt:Secret"]
+    ?? throw new InvalidOperationException("Jwt:Secret not configured.");
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            NameClaimType = System.Security.Claims.ClaimTypes.NameIdentifier
+        };
+    });
+
+builder.Services.AddAuthorization();
+
+//
 // ---------- API ----------
 //
 builder.Services.AddControllers();
@@ -52,7 +71,7 @@ builder.Services.AddHealthChecks();
 //
 builder.Services.AddApplicationInsightsTelemetry(options =>
 {
-    options.EnableAdaptiveSampling = false; // good for debugging
+    options.EnableAdaptiveSampling = false;
 });
 
 //
@@ -68,13 +87,10 @@ builder.Services.AddDbContext<NotesDbContext>(options =>
 {
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("Default"),
-        sql =>
-        {
-            sql.EnableRetryOnFailure(
-                maxRetryCount: 5,
-                maxRetryDelay: TimeSpan.FromSeconds(30),
-                errorNumbersToAdd: null);
-        });
+        sql => sql.EnableRetryOnFailure(
+            maxRetryCount: 5,
+            maxRetryDelay: TimeSpan.FromSeconds(30),
+            errorNumbersToAdd: null));
 });
 
 //
@@ -83,7 +99,20 @@ builder.Services.AddDbContext<NotesDbContext>(options =>
 builder.Services.AddScoped<INotesService, NotesService>();
 builder.Services.AddScoped<INoteRepository, SqlNoteRepository>();
 builder.Services.AddScoped<IAiService, AiService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddSingleton<TelemetryClient>();
+
+//
+// ---------- RAG ----------
+//
+var searchEndpoint = builder.Configuration["AzureSearch:Endpoint"];
+var ragEnabled = !string.IsNullOrWhiteSpace(searchEndpoint)
+    && !searchEndpoint.StartsWith("YOUR_");
+
+if (ragEnabled)
+    builder.Services.AddScoped<IRagService, RagService>();
+else
+    builder.Services.AddScoped<IRagService, NoOpRagService>();
 
 //
 // ---------- BUILD ----------
@@ -102,7 +131,7 @@ using (var scope = app.Services.CreateScope())
     }
     catch (Exception ex)
     {
-        app.Logger.LogError(ex, "❌ Database migration failed");
+        app.Logger.LogError(ex, "Database migration failed");
     }
 }
 
@@ -117,6 +146,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("AllowFrontend");
 app.UseHttpsRedirection();
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapHealthChecks("/health");

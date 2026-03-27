@@ -13,6 +13,7 @@ namespace NotesApp.Infrastructure.Data
         }
 
         public DbSet<Note> Notes { get; set; } = null!;
+        public DbSet<User> Users { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
