@@ -10,12 +10,18 @@ interface Props {
   onTogglePin: (id: string) => void;
 }
 
-export default function NoteCard({
-  note,
-  onEdit,
-  onDelete,
-  onTogglePin,
-}: Props) {
+function stripHtml(html: string): string {
+  return html
+    .replace(/<\/p>/gi, " ")
+    .replace(/<br\s*\/?>/gi, " ")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .trim();
+}
+
+export default function NoteCard({ note, onEdit, onDelete, onTogglePin }: Props) {
+  const preview = stripHtml(note.content);
+
   return (
     <div className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow border dark:border-gray-700 flex flex-col gap-3">
       {/* Title + Pin */}
@@ -23,25 +29,17 @@ export default function NoteCard({
         <h3 className="font-semibold text-lg truncate text-gray-900 dark:text-gray-100">
           {note.title}
         </h3>
-
-        <button
-          onClick={() => onTogglePin(note.id)}
-          title={note.pinned ? "Unpin note" : "Pin note"}
-        >
+        <button onClick={() => onTogglePin(note.id)} title={note.pinned ? "Unpin note" : "Pin note"}>
           <Pin
             size={18}
-            className={
-              note.pinned
-                ? "text-yellow-400"
-                : "text-gray-400 hover:text-yellow-300"
-            }
+            className={note.pinned ? "text-yellow-400" : "text-gray-400 hover:text-yellow-300"}
           />
         </button>
       </div>
 
-      {/* Content */}
+      {/* Content preview */}
       <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-4">
-        {note.content}
+        {preview}
       </p>
 
       {/* Tags */}
@@ -70,16 +68,10 @@ export default function NoteCard({
         <Button size="sm" onClick={onEdit}>
           <Pencil size={14} /> Edit
         </Button>
-
         <Button size="sm" variant="secondary" onClick={onDelete}>
           <Trash2 size={14} /> Delete
         </Button>
-
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={() => exportNoteToPDF(note.title, note.content)}
-        >
+        <Button size="sm" variant="secondary" onClick={() => exportNoteToPDF(note.title, note.content)}>
           <FileDown size={14} /> PDF
         </Button>
       </div>

@@ -33,4 +33,13 @@ body {
   @apply px-2 py-1 rounded bg-gray-200 dark:bg-gray-700 text-xs;
 }
 
+/* TipTap placeholder */
+.tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #9ca3af;
+  pointer-events: none;
+  height: 0;
+}
+
 

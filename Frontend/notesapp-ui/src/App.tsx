@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { api } from "./services/api";
 
 import AppLayout from "./components/layout/AppLayout";
 import NotesList from "./components/notes/NotesList";
@@ -10,8 +11,18 @@ import Input from "./components/ui/Input";
 import { useNotesPagination } from "./hooks/useNotesPagination";
 import type { Note } from "./features/notes/types";
 import ShortcutsModal from "./components/ui/ShortcutsModal";
+import NoteCardSkeleton from "./components/notes/NoteCardSkeleton";
 
 function App() {
+  // Warm up the API on first render to reduce cold-start delay
+  const warmedUp = useRef(false);
+  useEffect(() => {
+    if (!warmedUp.current) {
+      warmedUp.current = true;
+      api.get("/health").catch(() => {});
+    }
+  }, []);
+
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
   const [search, setSearch] = useState("");
@@ -88,9 +99,7 @@ function App() {
   return (
     <AppLayout>
       {/* ================= HEADER ================= */}
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-semibold">Notes App</h1>
-
+      <div className="flex items-center justify-end mb-4">
         <div className="flex gap-3 items-center">
           {/* Search */}
           <Input
@@ -158,7 +167,11 @@ function App() {
 
       {/* ================= CONTENT ================= */}
       {loading ? (
-        <div className="text-center text-gray-500">Loading…</div>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+          {Array.from({ length: pageSize }).map((_, i) => (
+            <NoteCardSkeleton key={i} />
+          ))}
+        </div>
       ) : filteredNotes.length === 0 ? (
         <div className="text-center py-20 space-y-4">
           <div className="text-6xl">📝</div>

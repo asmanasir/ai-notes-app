@@ -185,6 +185,7 @@ namespace NotesApp.API.Controllers
         // ===========================
         // PATCH pin
         // ===========================
+
         [HttpPatch("{id}/pin")]
         public async Task<IActionResult> TogglePin(string id)
         {
